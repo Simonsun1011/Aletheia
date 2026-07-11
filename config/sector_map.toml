@@ -1,0 +1,14 @@
+# 行业 ETF 映射（docs/data-model.md §4 / slice-02）
+# 空字符串 = QQQ-only（无行业 ETF，snapshot.relative.sector_etf = null）
+
+[map]
+AMAT = "SOXX"
+MRVL = "SOXX"
+NVDA = "SOXX"
+AVGO = "SOXX"
+MSFT = ""
+GOOGL = ""
+AAPL = ""
+AMZN = ""
+META = ""
+TSLA = ""

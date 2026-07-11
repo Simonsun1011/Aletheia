@@ -1,0 +1,52 @@
+# 相关性硬过滤词表（Slice 3b）。匹配不上不摘要、不进简报。
+# 运行时还会并入 watchlist 中非 archived 的 ticker。
+
+# 公司名别名 → 标的代码（大小写不敏感；**只匹配标题**，避免摘要点名漏网）
+[aliases]
+"Applied Materials" = "AMAT"
+"应用材料" = "AMAT"
+"Micron" = "MU"
+"美光" = "MU"
+"NVIDIA" = "NVDA"
+"Nvidia" = "NVDA"
+"英伟达" = "NVDA"
+"Broadcom" = "AVGO"
+"TSMC" = "TSM"
+"台积电" = "TSM"
+"Microsoft" = "MSFT"
+"Alphabet" = "GOOGL"
+"Google" = "GOOGL"
+"Amazon" = "AMZN"
+"Meta Platforms" = "META"
+"Marvell" = "MRVL"
+"ASML" = "ASML"
+"Intel" = "INTC"
+"AMD" = "AMD"
+"Arm Holdings" = "ARM"
+"Super Micro" = "SMCI"
+"Dell Technologies" = "DELL"
+"Monolithic Power" = "MPWR"
+
+# 主题关键词（命中则保留；objects 可不绑定具体 ticker）
+[theme_keywords]
+terms = [
+  "HBM",
+  "HBM3",
+  "HBM4",
+  "CoWoS",
+  "capex",
+  "export control",
+  "出口管制",
+  "foundry",
+  "wafer",
+  "semiconductor",
+  "半导体",
+  "GPU",
+  "AI chip",
+  "AI chips",
+  "datacenter",
+  "data center",
+  "先进封装",
+  "光刻",
+  "EUV",
+]

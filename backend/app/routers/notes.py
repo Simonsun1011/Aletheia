@@ -1,0 +1,48 @@
+"""Quick notes endpoints — docs/api-contract.md §3."""
+
+from __future__ import annotations
+
+import logging
+from typing import Optional
+
+from fastapi import APIRouter, Request, Response
+from fastapi.responses import JSONResponse
+
+from backend.app.deps import StoreDep
+from backend.app.models import NoteCreate, QuickNote
+
+router = APIRouter(prefix="/notes", tags=["notes"])
+store_log = logging.getLogger("aletheia.store")
+
+APPEND_ONLY_BODY = {
+    "error": {
+        "code": "APPEND_ONLY_VIOLATION",
+        "message": "quick_notes is append-only",
+        "detail": {},
+    }
+}
+
+
+@router.post("", status_code=201, response_model=QuickNote)
+def create_note(body: NoteCreate, store: StoreDep) -> QuickNote:
+    return store.create_note(body)
+
+
+@router.get("", response_model=list[QuickNote])
+def list_notes(
+    store: StoreDep,
+    object: Optional[str] = None,
+    limit: Optional[int] = None,
+) -> list[QuickNote]:
+    return store.list_notes(object=object, limit=limit)
+
+
+@router.api_route("/{path:path}", methods=["PUT", "PATCH", "DELETE"])
+@router.api_route("", methods=["PUT", "PATCH", "DELETE"])
+def notes_append_only_guard(request: Request, path: str = "") -> Response:
+    store_log.warning(
+        "append-only rejection: %s %s",
+        request.method,
+        request.url.path,
+    )
+    return JSONResponse(status_code=405, content=APPEND_ONLY_BODY)

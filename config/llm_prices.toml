@@ -1,0 +1,10 @@
+# LLM 价目表（人工维护，$/百万 tokens）。代码只读；缺模型则 est_cost_usd=null。
+# 数字为占位参考，请按你的中转实际价目改。
+
+[prices."openai/grok-4.5"]
+input_usd_per_mtok = 0.20
+output_usd_per_mtok = 0.50
+
+[prices."openai/gpt-4o-mini"]
+input_usd_per_mtok = 0.15
+output_usd_per_mtok = 0.60

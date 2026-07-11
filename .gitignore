@@ -1,6 +1,7 @@
 # 密钥与环境 —— 永不入库
 .env
 .env.*
+!.env.example
 *.pem
 serviceAccount*.json
 
@@ -15,10 +16,20 @@ venv/
 node_modules/
 .next/
 
-# 可再生数据：SQLite库不进git（app.db可由JSONL重建；JSONL判断数据、plans/、reports/ 需要提交——它们的备份就是git）
+# 可再生数据：SQLite库不进git（app.db可由JSONL重建）
 *.db
 *.db-journal
 data/market/
+
+# 隐私数据（DESIGN v0.4，2026-07-12）：仓库将分享给朋友
+# 个人判断/随感/成交（journal JSONL）、买入方案（plans/）、报告（reports/）永不进git
+# 异地备份走Firestore免费层（独立切片）
+data/journal/*.jsonl
+plans/
+reports/
+
+# 日志
+logs/
 
 # 系统
 .DS_Store
