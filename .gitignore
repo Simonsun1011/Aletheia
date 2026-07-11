@@ -1,0 +1,24 @@
+# 密钥与环境 —— 永不入库
+.env
+.env.*
+*.pem
+serviceAccount*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Node（Phase 1+）
+node_modules/
+.next/
+
+# 可再生数据：行情SQLite库不进git（JSONL判断数据、plans/、reports/ 需要提交——它们的备份就是git）
+market_data.db
+*.db-journal
+data/market/
+
+# 系统
+.DS_Store
