@@ -21,5 +21,8 @@ node_modules/
 *.db-journal
 data/market/
 
+# 日志
+logs/
+
 # 系统
 .DS_Store
