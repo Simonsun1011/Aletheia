@@ -15,8 +15,8 @@ venv/
 node_modules/
 .next/
 
-# 可再生数据：行情SQLite库不进git（JSONL判断数据、plans/、reports/ 需要提交——它们的备份就是git）
-market_data.db
+# 可再生数据：SQLite库不进git（app.db可由JSONL重建；JSONL判断数据、plans/、reports/ 需要提交——它们的备份就是git）
+*.db
 *.db-journal
 data/market/
 
