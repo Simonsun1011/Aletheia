@@ -1,0 +1,153 @@
+# Aletheia Slice 1 — functional UI, no polish
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  color: #1a1a1a;
+  background: #f7f7f5;
+}
+
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 0.25rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+}
+
+.muted {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+section {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  color: #444;
+  margin-bottom: 0.2rem;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #ccc;
+  font: inherit;
+  margin-bottom: 0.65rem;
+}
+
+textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #fff;
+  color: #1a1a1a;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #a30;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+
+.chain {
+  border-top: 1px solid #eee;
+  padding: 0.85rem 0;
+}
+
+.chain:first-of-type {
+  border-top: none;
+}
+
+.chain-meta {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.35rem;
+}
+
+.entry {
+  margin: 0.35rem 0;
+}
+
+.entry.child {
+  margin-left: 1.25rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #ddd;
+}
+
+.entry-kind {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #888;
+}
+
+.note-item {
+  border-top: 1px solid #eee;
+  padding: 0.55rem 0;
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.append-box {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #fafafa;
+  border: 1px dashed #ccc;
+}
