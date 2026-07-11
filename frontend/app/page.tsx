@@ -119,7 +119,16 @@ export default function HomePage() {
   return (
     <main>
       <h1>Aletheia · 判断日志</h1>
-      <p className="muted">Slice 1：录入 → 校验 → JSONL+SQLite → 列表。无 AI、无行情。</p>
+      <p className="muted">
+        Slice 1：录入 → 校验 → JSONL+SQLite → 列表。{" "}
+        <a href="/stocks/AMAT">AMAT 快照 →</a>
+        {" · "}
+        <a href="/feed">信息流简报 →</a>
+        {" · "}
+        <a href="/console">操作台 →</a>
+        {" · "}
+        <a href="/settings">设置 →</a>
+      </p>
 
       {error && <p className="error">{error}</p>}
 

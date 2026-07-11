@@ -66,6 +66,17 @@ def append_entry(
                 }
             },
         )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": str(e),
+                    "detail": {},
+                }
+            },
+        )
 
 
 @router.get("")
@@ -74,8 +85,11 @@ def list_judgments(
     object: Optional[str] = None,
     status: Optional[str] = None,
     jtype: Optional[str] = None,
+    origin: Optional[str] = None,
 ):
-    return store.list_chains(object=object, status=status, jtype=jtype)
+    return store.list_chains(
+        object=object, status=status, jtype=jtype, origin=origin
+    )
 
 
 @router.get("/{root_id}")

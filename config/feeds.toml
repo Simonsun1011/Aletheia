@@ -1,0 +1,41 @@
+# 信息流信源（Slice 3）。enabled=false 的源不抓取。
+
+[[feeds]]
+id = "prnewswire_tech"
+name = "PR Newswire Tech"
+type = "rss"
+url = "https://www.prnewswire.com/rss/news-releases-list.rss"
+enabled = true
+
+[[feeds]]
+id = "globenewswire"
+name = "GlobeNewswire"
+type = "rss"
+url = "https://www.globenewswire.com/RssFeed/orgclass/1/feedTitle/GlobeNewswire%20-%20News%20Room"
+enabled = true
+
+[[feeds]]
+id = "sec_atom"
+name = "SEC EDGAR recent"
+type = "rss"
+url = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&company=&dateb=&owner=include&count=40&output=atom"
+enabled = true
+skip_relevance = true
+
+# per-ticker templates: {ticker} 由 watchlist focus/base 填充
+[[feeds]]
+id = "yahoo_ticker"
+name = "Yahoo Finance"
+type = "rss_template"
+url = "https://finance.yahoo.com/rss/headline?s={ticker}"
+enabled = true
+tier = "focus"
+skip_relevance = true
+
+[[feeds]]
+id = "google_news_ticker"
+name = "Google News"
+type = "rss_template"
+url = "https://news.google.com/rss/search?q={ticker}+stock&hl=en-US&gl=US&ceid=US:en"
+enabled = true
+tier = "focus"

@@ -12,8 +12,27 @@ body {
   background: #f7f7f5;
 }
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  width: 40%;
+  color: #555;
+  font-weight: 500;
+}
+
 main {
-  max-width: 880px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
 }
@@ -150,4 +169,93 @@ button:disabled {
   padding: 0.5rem;
   background: #fafafa;
   border: 1px dashed #ccc;
+}
+
+.narrative-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.narrative-col h3 {
+  font-size: 1rem;
+  margin: 0 0 0.35rem;
+}
+
+.narrative-sub {
+  margin-bottom: 0.75rem;
+  line-height: 1.45;
+}
+
+.scroll-pane {
+  max-height: 22rem;
+  overflow-y: auto;
+  border: 1px solid #e5e5e5;
+  background: #fafafa;
+  padding: 0.75rem 0.85rem;
+}
+
+.narrative-dominant {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.narrative-block {
+  margin-bottom: 0.85rem;
+}
+
+.narrative-block:last-child {
+  margin-bottom: 0;
+}
+
+.narrative-block-title {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.02em;
+}
+
+.narrative-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.narrative-list li {
+  padding: 0.45rem 0;
+  border-top: 1px solid #eee;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.narrative-list li:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+@media (max-width: 760px) {
+  .narrative-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fill-modal {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px dashed #bbb;
+  background: #fafafa;
+}
+
+.fill-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 0.75rem;
+}
+
+@media (max-width: 560px) {
+  .fill-grid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,0 +1,54 @@
+# 投资结论黑名单（api-contract.md §5）— 作用于一切 AI 文本
+# 代码只能加载，不得在代码中删除条目。
+
+[conclusion]
+patterns = [
+  "建议(买入|卖出|加仓|减仓|持有)",
+  "(强烈)?(看多|看空)",
+  "目标价",
+  "应该(买|卖|加仓|减仓)",
+  "(?i)\\b(buy|sell|strong buy|strong sell|price target)\\b",
+  "仓位建议",
+]
+
+# 摘要铁律（DESIGN §3.0.1）— 仅作用于 feed_cards.summary
+# 影响判断词进摘要即拦截；不作用于用户文本。
+
+[summary_iron_law]
+patterns = [
+  "利好",
+  "利空",
+  "受益",
+  "承压",
+  "看好",
+  "风险加大",
+  "(?i)(positive|negative)\\s+for",
+  "(?i)benefits?\\s+from",
+]
+
+# 归因观点（Slice 4b）— narrative_scan 输出
+# 基于 conclusion：always_block 无条件拦截；conditional_block 仅在无归因主语时拦截。
+# 豁免模式只在本段配置，禁止在代码中硬编码豁免字符串。
+
+[attributed_views]
+always_block = [
+  "建议(买入|卖出|加仓|减仓|持有)",
+  "应该(买|卖|加仓|减仓)",
+  "(?i)\\b(strong buy|strong sell)\\b",
+  "仓位建议",
+]
+
+conditional_block = [
+  "(强烈)?(看多|看空)",
+  "目标价",
+  "(?i)\\b(buy|sell|price target)\\b",
+]
+
+# 命中 conditional_block 时，若全文同时命中任一 attribution_allows → 放行该条件项
+attribution_allows = [
+  "(多方|空方)论点[：:]",
+  "(市场|多头|空头|买方|卖方|分析师|投资者|投行).{0,40}(强烈)?(看多|看空)",
+  "(多方|空方|市场|多头|空头).{0,10}认为.{0,40}(看多|看空)",
+  "(分析师|投行|市场|多方|空方|多头|空头).{0,40}(目标价|price target|\\bbuy\\b|\\bsell\\b)",
+  "(analyst|bank|goldman|morgan stanley|jp.?morgan|barclays).{0,40}(price target|\\bbuy\\b|\\bsell\\b)",
+]

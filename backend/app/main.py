@@ -13,7 +13,18 @@ from fastapi.responses import JSONResponse
 from backend.app.config import get_settings
 from backend.app.logging_setup import setup_logging
 from backend.app.middleware import RequestIdMiddleware
-from backend.app.routers import judgments, notes, watchlist
+from backend.app.routers import (
+    changefeed,
+    console,
+    executions,
+    feed,
+    glossary,
+    judgments,
+    notes,
+    tickers,
+    usage,
+    watchlist,
+)
 from backend.app.stores.base import AppStore
 from backend.app.stores.sqlite_store import SqliteStore
 
@@ -30,9 +41,21 @@ def create_store() -> AppStore:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from backend.app.ai import adapter as ai_adapter
+    from backend.app.ai import usage as llm_usage
+
     store = create_store()
     app.state.store = store
+    # v1.8 A4: wire Store into usage module; adapter gets callbacks only (no Store)
+    llm_usage.set_store(store)
+    ai_adapter.configure_usage_hooks(
+        record_usage=llm_usage.record_usage,
+        budget_status=llm_usage.budget_status,
+        assert_batch_budget_allows=llm_usage.assert_batch_budget_allows,
+    )
     yield
+    ai_adapter.reset_usage_hooks()
+    llm_usage.clear_store()
     if isinstance(store, SqliteStore):
         store.close()
 
@@ -53,6 +76,13 @@ app.add_middleware(
 app.include_router(judgments.router, prefix="/api")
 app.include_router(notes.router, prefix="/api")
 app.include_router(watchlist.router, prefix="/api")
+app.include_router(tickers.router, prefix="/api")
+app.include_router(changefeed.router, prefix="/api")
+app.include_router(feed.router, prefix="/api")
+app.include_router(console.router, prefix="/api")
+app.include_router(glossary.router, prefix="/api")
+app.include_router(usage.router, prefix="/api")
+app.include_router(executions.router, prefix="/api")
 
 
 @app.exception_handler(RequestValidationError)

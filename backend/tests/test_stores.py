@@ -76,6 +76,7 @@ def test_watchlist_requires_reason_and_archive_hides_from_active(client):
         json={"ticker": "AMAT", "add_reason": "AI上游设备核心"},
     )
     assert ok.status_code == 201
+    assert ok.json()["tier"] == "base"
 
     listed = client.get("/api/watchlist").json()
     assert any(i["ticker"] == "AMAT" for i in listed["active"])
@@ -88,3 +89,45 @@ def test_watchlist_requires_reason_and_archive_hides_from_active(client):
 
     listed2 = client.get("/api/watchlist").json()
     assert not any(i["ticker"] == "AMAT" for i in listed2["active"])
+
+
+def test_watchlist_tier_default_and_update(client):
+    created = client.post(
+        "/api/watchlist",
+        json={"ticker": "NVDA", "add_reason": "算力核心", "tier": "focus"},
+    )
+    assert created.status_code == 201
+    assert created.json()["tier"] == "focus"
+
+    client.post(
+        "/api/watchlist",
+        json={"ticker": "MSFT", "add_reason": "云与AI", "tier": "base"},
+    )
+
+    focus_only = client.get("/api/watchlist?tier=focus").json()
+    assert any(i["ticker"] == "NVDA" for i in focus_only["active"])
+    assert not any(i["ticker"] == "MSFT" for i in focus_only["active"])
+
+    updated = client.post(
+        "/api/watchlist/NVDA/tier",
+        json={"tier": "muted"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["tier"] == "muted"
+
+    muted = client.get("/api/watchlist?tier=muted").json()
+    assert any(i["ticker"] == "NVDA" for i in muted["active"])
+
+
+def test_watchlist_tier_unknown_ticker_404(client):
+    r = client.post("/api/watchlist/ZZZZ/tier", json={"tier": "focus"})
+    assert r.status_code == 404
+
+
+def test_watchlist_invalid_tier_422(client):
+    client.post(
+        "/api/watchlist",
+        json={"ticker": "AMAT", "add_reason": "x"},
+    )
+    r = client.post("/api/watchlist/AMAT/tier", json={"tier": "hot"})
+    assert r.status_code == 422
