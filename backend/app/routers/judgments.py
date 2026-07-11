@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
 from backend.app.deps import StoreDep
@@ -12,6 +13,7 @@ from backend.app.models import JudgmentAppend, JudgmentCreate, JudgmentEntry
 from backend.app.stores.base import ConflictError
 
 router = APIRouter(prefix="/judgments", tags=["judgments"])
+store_log = logging.getLogger("aletheia.store")
 
 APPEND_ONLY_BODY = {
     "error": {
@@ -22,7 +24,12 @@ APPEND_ONLY_BODY = {
 }
 
 
-def _append_only_response() -> JSONResponse:
+def _append_only_response(request: Request) -> JSONResponse:
+    store_log.warning(
+        "append-only rejection: %s %s",
+        request.method,
+        request.url.path,
+    )
     return JSONResponse(status_code=405, content=APPEND_ONLY_BODY)
 
 
@@ -90,5 +97,5 @@ def get_judgment(root_id: str, store: StoreDep):
 
 @router.api_route("/{path:path}", methods=["PUT", "PATCH", "DELETE"])
 @router.api_route("", methods=["PUT", "PATCH", "DELETE"])
-def judgments_append_only_guard(path: str = "") -> Response:
-    return _append_only_response()
+def judgments_append_only_guard(request: Request, path: str = "") -> Response:
+    return _append_only_response(request)

@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 
 from backend.app.deps import StoreDep
 from backend.app.models import NoteCreate, QuickNote
 
 router = APIRouter(prefix="/notes", tags=["notes"])
+store_log = logging.getLogger("aletheia.store")
 
 APPEND_ONLY_BODY = {
     "error": {
@@ -37,5 +39,10 @@ def list_notes(
 
 @router.api_route("/{path:path}", methods=["PUT", "PATCH", "DELETE"])
 @router.api_route("", methods=["PUT", "PATCH", "DELETE"])
-def notes_append_only_guard(path: str = "") -> Response:
+def notes_append_only_guard(request: Request, path: str = "") -> Response:
+    store_log.warning(
+        "append-only rejection: %s %s",
+        request.method,
+        request.url.path,
+    )
     return JSONResponse(status_code=405, content=APPEND_ONLY_BODY)

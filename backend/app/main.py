@@ -11,14 +11,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.app.config import get_settings
+from backend.app.logging_setup import setup_logging
+from backend.app.middleware import RequestIdMiddleware
 from backend.app.routers import judgments, notes, watchlist
 from backend.app.stores.base import AppStore
 from backend.app.stores.sqlite_store import SqliteStore
 
+settings = get_settings()
+setup_logging(level=settings.log_level, log_dir=settings.log_dir)
+
 
 def create_store() -> AppStore:
-    settings = get_settings()
-    store = SqliteStore(settings.app_db_path, settings.journal_dir)
+    s = get_settings()
+    store = SqliteStore(s.app_db_path, s.journal_dir)
     store.init_schema()
     return store
 
@@ -34,7 +39,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Aletheia", version="0.1.0", lifespan=lifespan)
 
-settings = get_settings()
+# RequestId outermost among our middleware so CORS preflight also gets an id
+# when it reaches the app; CORS is added after so it can short-circuit OPTIONS.
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

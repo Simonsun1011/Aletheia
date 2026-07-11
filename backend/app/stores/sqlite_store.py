@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -30,6 +31,8 @@ from backend.app.stores.base import AppStore, ConflictError
 # presence of a kind='review' entry (API status field reflects this). Planning
 # layer should either (a) allow a narrow status-only UPDATE exception in the
 # trigger, or (b) document derived-status as the canonical rule.
+
+store_log = logging.getLogger("aletheia.store")
 
 
 SCHEMA_SQL = """
@@ -204,6 +207,17 @@ class SqliteStore(AppStore):
         )
         return today if cur.fetchone() else None
 
+    def _execute(self, sql: str, params: Any = ()) -> sqlite3.Cursor:
+        """Execute SQL; log WARNING on append-only trigger abort."""
+        try:
+            return self._conn.execute(sql, params)
+        except sqlite3.IntegrityError as e:
+            if "APPEND_ONLY_VIOLATION" in str(e):
+                store_log.warning(
+                    "append-only rejection via SQLite trigger: %s", e
+                )
+            raise
+
     # ── JudgmentStore ──────────────────────────────────────
 
     def create_judgment(self, body: JudgmentCreate) -> JudgmentEntry:
@@ -236,7 +250,7 @@ class SqliteStore(AppStore):
         )
         row = entry.model_dump()
         jsonl_mirror.append_row(self.journal_dir, "judgment_entries", row)
-        self._conn.execute(
+        self._execute(
             """
             INSERT INTO judgment_entries (
                 id, root_id, kind, created_at, object, jtype, direction,
@@ -251,6 +265,12 @@ class SqliteStore(AppStore):
             row,
         )
         self._conn.commit()
+        store_log.info(
+            "judgment created id=%s object=%s jtype=%s",
+            entry.id,
+            entry.object,
+            entry.jtype,
+        )
         return entry
 
     def append_judgment(self, root_id: str, body: JudgmentAppend) -> JudgmentEntry:
@@ -283,7 +303,7 @@ class SqliteStore(AppStore):
         )
         row = entry.model_dump()
         jsonl_mirror.append_row(self.journal_dir, "judgment_entries", row)
-        self._conn.execute(
+        self._execute(
             """
             INSERT INTO judgment_entries (
                 id, root_id, kind, created_at, object, jtype, direction,
@@ -298,6 +318,12 @@ class SqliteStore(AppStore):
             row,
         )
         self._conn.commit()
+        store_log.info(
+            "judgment appended root_id=%s kind=%s id=%s",
+            root_id,
+            entry.kind,
+            entry.id,
+        )
         return entry
 
     def list_chains(
@@ -348,12 +374,13 @@ class SqliteStore(AppStore):
         )
         row = note.model_dump()
         jsonl_mirror.append_row(self.journal_dir, "quick_notes", row)
-        self._conn.execute(
+        self._execute(
             "INSERT INTO quick_notes (id, created_at, text, object) "
             "VALUES (:id, :created_at, :text, :object)",
             row,
         )
         self._conn.commit()
+        store_log.info("note created id=%s object=%s", note.id, note.object)
         return note
 
     def list_notes(

@@ -48,7 +48,7 @@ def test_put_patch_delete_notes_405(client):
 def test_sqlite_update_trigger_aborts(store):
     entry = store.create_judgment(JudgmentCreate(**VALID))
     with pytest.raises(sqlite3.IntegrityError):
-        store._conn.execute(
+        store._execute(
             "UPDATE judgment_entries SET text = ? WHERE id = ?",
             ("被篡改", entry.id),
         )
@@ -58,7 +58,7 @@ def test_sqlite_update_trigger_aborts(store):
 def test_sqlite_delete_trigger_aborts(store):
     entry = store.create_judgment(JudgmentCreate(**VALID))
     with pytest.raises(sqlite3.IntegrityError):
-        store._conn.execute(
+        store._execute(
             "DELETE FROM judgment_entries WHERE id = ?", (entry.id,)
         )
         store._conn.commit()

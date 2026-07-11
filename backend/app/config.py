@@ -18,14 +18,20 @@ class Settings:
     app_db_path: Path
     journal_dir: Path
     cors_origins: list[str]
+    log_level: str
+    log_dir: Path
 
 
 def get_settings() -> Settings:
     db = os.getenv("ALETHEIA_APP_DB", str(REPO_ROOT / "data" / "app.db"))
     journal = os.getenv("ALETHEIA_JOURNAL_DIR", str(REPO_ROOT / "data" / "journal"))
     origins = os.getenv("ALETHEIA_CORS_ORIGINS", "http://localhost:3000")
+    log_level = os.getenv("ALETHEIA_LOG_LEVEL", "INFO")
+    log_dir = os.getenv("ALETHEIA_LOG_DIR", str(REPO_ROOT / "logs"))
     return Settings(
         app_db_path=Path(db),
         journal_dir=Path(journal),
         cors_origins=[o.strip() for o in origins.split(",") if o.strip()],
+        log_level=log_level,
+        log_dir=Path(log_dir),
     )
