@@ -183,6 +183,32 @@ def _lazy_card(store, *, card_id="lazy", excerpt="Micron opened an HBM line."):
     )
 
 
+def test_clamp_card_summary_limits_length():
+    from backend.app.services.feed_summary import clamp_card_summary
+
+    assert clamp_card_summary("One. Two. Three. Four. Five.") == "One. Two. Three."
+    long = "Word " * 120 + "end."
+    assert len(clamp_card_summary(long)) <= 380
+
+
+def test_lazy_summary_clamped_on_save(client, store, monkeypatch):
+    _lazy_card(store)
+    monkeypatch.setattr(
+        "backend.app.services.feed_summary.ai_adapter.complete",
+        lambda **kwargs: CompletionResult(
+            text=" ".join(f"Fact {i} happened." for i in range(6)),
+            model="mock",
+            prompt_version="summarize_card_v2.md",
+            elapsed_ms=1,
+        ),
+    )
+    r = client.post("/api/feed/lazy/summary")
+    assert r.status_code == 200
+    summary = r.json()["summary"]
+    assert summary.count(".") == 3
+    assert len(summary) <= 380
+
+
 def test_lazy_summary_and_translation_are_cached(client, store, monkeypatch):
     _lazy_card(store)
     calls = []

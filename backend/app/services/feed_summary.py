@@ -14,6 +14,41 @@ from backend.app.stores.base import AppStore
 
 CompleteFn = Callable[..., ai_adapter.CompletionResult]
 _LANG = re.compile(r"^(?:zh|en|ja)(?:-[A-Za-z0-9]{2,8})?$", re.IGNORECASE)
+_MAX_SUMMARY_SENTENCES = 3
+_MAX_SUMMARY_CHARS = 380
+
+
+def clamp_card_summary(
+    text: str,
+    *,
+    max_sentences: int = _MAX_SUMMARY_SENTENCES,
+    max_chars: int = _MAX_SUMMARY_CHARS,
+) -> str:
+    """Enforce the same 2–3 sentence card summary shape as batch digest."""
+    raw = (text or "").strip()
+    if not raw:
+        return raw
+    parts = [
+        part.strip()
+        for part in re.split(r"(?<=[.!?。！？])\s+", raw)
+        if part.strip()
+    ]
+    if not parts:
+        parts = [raw]
+    if len(parts) > max_sentences:
+        parts = parts[:max_sentences]
+    out = " ".join(parts)
+    if len(out) <= max_chars:
+        return out
+    trimmed = out[:max_chars]
+    if " " in trimmed:
+        trimmed = trimmed.rsplit(" ", 1)[0]
+    return trimmed.rstrip(".,;:") + "."
+
+
+def _summary_within_limits(text: str) -> bool:
+    clamped = clamp_card_summary(text)
+    return clamped == (text or "").strip()
 
 
 class FeedSummaryError(Exception):
@@ -52,7 +87,7 @@ def generate_summary(
     card = store.get_feed_card(card_id)
     if card is None:
         raise KeyError(card_id)
-    if card.summary:
+    if card.summary and _summary_within_limits(card.summary):
         return {
             "summary": card.summary,
             "summary_generated_at": card.summary_generated_at,
@@ -63,6 +98,7 @@ def generate_summary(
             "EXCERPT_REQUIRED", "card excerpt is empty; summary cannot be generated"
         )
     complete = complete_fn or ai_adapter.complete
+    excerpt = (card.excerpt or "").strip()[:600]
     try:
         result = complete(
             prompt_file="summarize_card_v2.md",
@@ -70,7 +106,8 @@ def generate_summary(
                 f"title: {card.title}\n"
                 f"source: {card.source or ''}\n"
                 f"url: {card.url}\n"
-                f"excerpt: {card.excerpt.strip()}\n"
+                f"excerpt: {excerpt}\n"
+                f"constraint: at most 3 sentences, one main fact thread\n"
             ),
             purpose="summary",
             budget_mode="interactive",
@@ -80,7 +117,7 @@ def generate_summary(
         raise FeedSummaryError(
             "LLM_ERROR", f"summary generation failed: {type(error).__name__}", 502
         ) from error
-    summary = _text(result.text)
+    summary = clamp_card_summary(_text(result.text))
     if not summary:
         raise FeedSummaryError("VALIDATION_ERROR", "AI returned an empty summary")
     checked = guard(summary, ruleset="summary")
