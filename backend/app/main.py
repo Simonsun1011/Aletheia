@@ -11,12 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.app.config import get_settings
-from backend.app.logging_setup import setup_logging
+from backend.app.logging_setup import get_request_id, setup_logging
 from backend.app.middleware import RequestIdMiddleware
 from backend.app.routers import (
     changefeed,
     cloud,
     console,
+    diagnostics,
     executions,
     feed,
     glossary,
@@ -24,6 +25,7 @@ from backend.app.routers import (
     meta,
     notes,
     reviews,
+    status_router,
     tags,
     tickers,
     usage,
@@ -89,6 +91,8 @@ app.include_router(usage.router, prefix="/api")
 app.include_router(executions.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(cloud.router, prefix="/api")
+app.include_router(status_router.router, prefix="/api")
+app.include_router(diagnostics.router, prefix="/api")
 
 
 @app.exception_handler(RequestValidationError)
@@ -99,12 +103,27 @@ async def validation_handler(request: Request, exc: RequestValidationError):
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "request validation failed",
+                "request_id": get_request_id(),
                 "detail": {"errors": jsonable_encoder(exc.errors())},
             }
         },
     )
 
 
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "internal server error",
+                "request_id": get_request_id(),
+            }
+        },
+    )
+
+
 @app.get("/api/health")
-def health():
+async def health():
     return {"ok": True}

@@ -308,6 +308,10 @@ class FeedCard(BaseModel):
     # CONTRACT-ISSUE: Slice 8 v0.9 mark+comment on cards; not yet in data-model.md
     marked_at: Optional[str] = None
     user_comment: Optional[str] = None
+    # CONTRACT-ISSUE: Slice 3c priority fold; not yet in data-model.md
+    priority_score: Optional[float] = None
+    priority_reasons: Optional[str] = None  # JSON array of reason strings
+    folded: int = 0  # 1 = low-priority tail, no LLM summary
 
 
 class FeedCardMarkRequest(BaseModel):

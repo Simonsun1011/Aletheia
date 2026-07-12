@@ -156,6 +156,10 @@ class FeedStore(ABC):
     ) -> list[FilteredItem]:
         ...
 
+    def delete_feed_raw(self, *, batch_date: Optional[str] = None) -> int:
+        """Drop process-buffer raw rows after digest (Slice 3c). Default no-op."""
+        return 0
+
 
 class TagStore(ABC):
     """Controlled tag registry + card_tags (slice 8 / contract v2.1)."""

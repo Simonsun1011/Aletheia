@@ -58,6 +58,14 @@ def _card_view(card: FeedCard, tags: list) -> dict:
     topic_tags = [t for t in active_tags if t.kind == "topic"]
     company_tags = [t for t in active_tags if t.kind == "company"]
     unclassified = (len(objects) == 0) and (len(topic_tags) == 0)
+    reasons: list[str] = []
+    if card.priority_reasons:
+        try:
+            parsed_r = json.loads(card.priority_reasons)
+            if isinstance(parsed_r, list):
+                reasons = [str(x) for x in parsed_r]
+        except json.JSONDecodeError:
+            reasons = []
     return {
         **card.model_dump(),
         "urls": urls,
@@ -76,6 +84,9 @@ def _card_view(card: FeedCard, tags: list) -> dict:
         ],
         "unclassified": unclassified,
         "marked": bool(card.marked_at),
+        "folded": bool(card.folded),
+        "priority_reasons_list": reasons,
+        "priority_label": " · ".join(reasons[:3]) if reasons else None,
     }
 
 

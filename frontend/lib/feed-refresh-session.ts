@@ -3,6 +3,22 @@
 const PENDING_KEY = "feed:refreshPending";
 const STALE_MS = 3 * 60 * 1000; // 心跳超过 3 分钟仍 running → 提示可能卡住（不硬停）
 
+export type FeedRefreshDetail = {
+  step?: string;
+  raw?: number;
+  scanned?: number;
+  groups?: number;
+  filtered?: number;
+  prescreen_discarded?: number;
+  survivors?: number;
+  skipped_existing?: number;
+  cards_ok?: number;
+  llm_cap?: number;
+  fail?: number;
+  current_title?: string;
+  hint?: string;
+};
+
 export type FeedRefreshStatus = {
   running: boolean;
   phase?: string | null;
@@ -11,15 +27,33 @@ export type FeedRefreshStatus = {
   finished_at?: string | null;
   heartbeat_at?: string | null;
   message?: string | null;
+  detail?: FeedRefreshDetail | null;
   error?: string | null;
   result?: {
     batch_date: string;
     cards: number;
     fetch?: { raw?: number };
-    digest?: { ok?: number; filtered?: number; cancelled?: number };
+    digest?: {
+      ok?: number;
+      filtered?: number;
+      prescreen_discarded?: number;
+      survivors?: number;
+      cancelled?: number;
+    };
   } | null;
   accepted?: boolean;
 };
+
+export function formatElapsed(startedAt?: string | null): string | null {
+  if (!startedAt) return null;
+  const t = Date.parse(startedAt);
+  if (Number.isNaN(t)) return null;
+  const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}m${s.toString().padStart(2, "0")}s`;
+}
 
 function todayUTC(): string {
   return new Date().toISOString().slice(0, 10);

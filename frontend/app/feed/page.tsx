@@ -9,10 +9,12 @@ import { TermRichText } from "@/components/term-rich-text";
 import { dateRelative } from "@/lib/format";
 import {
   clearFeedRefreshPending,
-  FeedRefreshStatus,
+  formatElapsed,
   isFeedRefreshPending,
   isHeartbeatStale,
   markFeedRefreshPending,
+  type FeedRefreshDetail,
+  type FeedRefreshStatus,
 } from "@/lib/feed-refresh-session";
 
 type TagChip = {
@@ -37,6 +39,10 @@ type FeedCardView = {
   marked?: boolean;
   user_comment?: string | null;
   marked_at?: string | null;
+  folded?: boolean;
+  priority_score?: number | null;
+  priority_label?: string | null;
+  priority_reasons_list?: string[];
 };
 
 type FeedResponse = {
@@ -79,11 +85,19 @@ export default function FeedPage() {
   const [days, setDays] = useState<(typeof DAY_OPTIONS)[number]>(1);
   const [tag, setTag] = useState<string | null>(null);
   const [showLowSignal, setShowLowSignal] = useState(false);
+  const [showFolded, setShowFolded] = useState(false);
   const [commentFor, setCommentFor] = useState<FeedCardView | null>(null);
   const [commentText, setCommentText] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+  const [refreshDetail, setRefreshDetail] = useState<FeedRefreshDetail | null>(
+    null
+  );
+  const [refreshStartedAt, setRefreshStartedAt] = useState<string | null>(null);
+  const [refreshElapsed, setRefreshElapsed] = useState<string | null>(null);
   const [refreshStale, setRefreshStale] = useState(false);
+  const [pollFailed, setPollFailed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const handledFinishRef = useRef(false);
 
@@ -133,11 +147,15 @@ export default function FeedPage() {
         );
       } else {
         toast.success(
-          `简报已更新：抓取 ${result?.fetch?.raw ?? 0} 条 → 入卡 ${result?.cards ?? 0} 条（过滤 ${result?.digest?.filtered ?? 0}）`
+          `简报已更新：抓取 ${result?.fetch?.raw ?? 0} 条 → 初筛丢 ${result?.digest?.prescreen_discarded ?? 0} → 入卡 ${result?.cards ?? 0} 条`
         );
       }
       setRefreshMsg(null);
+      setRefreshDetail(null);
+      setRefreshStartedAt(null);
+      setRefreshElapsed(null);
       setRefreshStale(false);
+      setPollFailed(false);
       await refresh();
     },
     [refresh, stopPolling]
@@ -146,7 +164,13 @@ export default function FeedPage() {
   const pollOnce = useCallback(async () => {
     try {
       const status = await apiGet<FeedRefreshStatus>("/feed/refresh/status");
+      setPollFailed(false);
       if (status.message) setRefreshMsg(status.message);
+      if (status.detail) setRefreshDetail(status.detail);
+      if (status.started_at) {
+        setRefreshStartedAt(status.started_at);
+        setRefreshElapsed(formatElapsed(status.started_at));
+      }
       setRefreshStale(isHeartbeatStale(status));
       if (status.running) {
         setRefreshing(true);
@@ -170,9 +194,12 @@ export default function FeedPage() {
           setRefreshMsg(null);
         }
       }
-    } catch (e) {
-      // keep polling; surface soft error in banner
-      setRefreshMsg(`状态查询失败：${String((e as Error).message ?? e)}（将继续重试）`);
+    } catch (_e) {
+      // Poll itself failed → backend unreachable (distinct from "slow digest")
+      setPollFailed(true);
+      setRefreshMsg(
+        "后端无响应（轮询失败）— 与「摘要慢」不同，请检查后端或停止生成"
+      );
     }
   }, [onRefreshFinished]);
 
@@ -184,6 +211,15 @@ export default function FeedPage() {
       void pollOnce();
     }, 2000);
   }, [pollOnce, stopPolling]);
+
+  // Tick elapsed clock while refreshing (status poll is every 2s)
+  useEffect(() => {
+    if (!refreshing || !refreshStartedAt) return;
+    const id = window.setInterval(() => {
+      setRefreshElapsed(formatElapsed(refreshStartedAt));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [refreshing, refreshStartedAt]);
 
   useEffect(() => {
     refresh();
@@ -199,6 +235,11 @@ export default function FeedPage() {
         if (status.running || isFeedRefreshPending()) {
           setRefreshing(true);
           setRefreshMsg(status.message || "生成进行中…");
+          if (status.detail) setRefreshDetail(status.detail);
+          if (status.started_at) {
+            setRefreshStartedAt(status.started_at);
+            setRefreshElapsed(formatElapsed(status.started_at));
+          }
           markFeedRefreshPending(status.batch_date || undefined);
           startPolling();
         }
@@ -216,23 +257,37 @@ export default function FeedPage() {
     };
   }, [startPolling, stopPolling]);
 
-  const { primaryCards, lowSignalCards } = useMemo(() => {
+  const { primaryCards, lowSignalCards, foldedCards } = useMemo(() => {
     const cards = data?.cards ?? [];
     const low: FeedCardView[] = [];
     const primary: FeedCardView[] = [];
+    const folded: FeedCardView[] = [];
     for (const c of cards) {
+      if (c.folded) {
+        folded.push(c);
+        continue;
+      }
       const isLow = (c.tags ?? []).some((t) => t.tag_id === "low-signal-pr");
       if (isLow) low.push(c);
       else primary.push(c);
     }
-    return { primaryCards: primary, lowSignalCards: low };
+    const byScore = (a: FeedCardView, b: FeedCardView) =>
+      (b.priority_score ?? 0) - (a.priority_score ?? 0);
+    primary.sort(byScore);
+    folded.sort(byScore);
+    return {
+      primaryCards: primary,
+      lowSignalCards: low,
+      foldedCards: folded,
+    };
   }, [data]);
 
   async function onRefreshFeed() {
     if (refreshing) return;
     setRefreshing(true);
-    setBusy(true);
+    setCancelBusy(false);
     setRefreshStale(false);
+    setPollFailed(false);
     setRefreshMsg("已提交，正在启动…");
     handledFinishRef.current = false;
     markFeedRefreshPending();
@@ -247,22 +302,22 @@ export default function FeedPage() {
     } catch (e) {
       clearFeedRefreshPending();
       setRefreshing(false);
-      setBusy(false);
       setRefreshMsg(null);
       toast.error(String((e as Error).message ?? e));
     }
   }
 
   async function onCancelRefresh() {
+    if (cancelBusy) return;
     try {
-      setBusy(true);
+      setCancelBusy(true);
       const st = await apiPost<FeedRefreshStatus>("/feed/refresh/cancel", {});
       setRefreshMsg(st.message || "正在停止…");
       toast.success("已请求停止，当前条目结束后会停下");
     } catch (e) {
       toast.error(String((e as Error).message ?? e));
     } finally {
-      setBusy(false);
+      setCancelBusy(false);
     }
   }
 
@@ -372,6 +427,7 @@ export default function FeedPage() {
         <div className="feed-meta">
           {c.source ?? "未知来源"} · {dateRelative(c.published_at_display)}
           {c.published_at_fallback ? "（抓取时间）" : ""}
+          {c.priority_label ? ` · ${c.priority_label}` : ""}
         </div>
         {c.summary && (
           <div className="info-ai" style={{ marginBottom: "var(--s3)" }}>
@@ -385,6 +441,11 @@ export default function FeedPage() {
               </p>
             </div>
           </div>
+        )}
+        {c.folded && !c.summary && (
+          <p className="muted" style={{ marginBottom: "var(--s3)" }}>
+            低优先折叠：未调用摘要模型（标题+来源保留，可展开原文）
+          </p>
         )}
         {c.user_comment && (
           <p className="note" style={{ marginBottom: "var(--s3)" }}>
@@ -485,26 +546,86 @@ export default function FeedPage() {
             <button
               type="button"
               className="secondary btn-small"
-              disabled={busy}
+              disabled={cancelBusy}
               onClick={() => void onCancelRefresh()}
             >
-              停止生成
+              {cancelBusy ? "正在停止…" : "停止生成"}
             </button>
           )}
         </div>
 
         {refreshing && (
           <div
-            className={refreshStale ? "note-warn" : "note"}
+            className={pollFailed || refreshStale ? "note-warn" : "note"}
             style={{ marginBottom: "var(--s3)" }}
           >
-            {refreshMsg ||
-              "生成进行中…其它页面应仍可读库；可点「停止生成」。"}
-            {refreshStale && (
-              <span>
-                {" "}
-                · 已超过约 3 分钟无进展心跳，可能卡住；未设硬超时，仍在等待服务端状态。
-              </span>
+            <div>
+              <strong>{refreshMsg || "生成进行中…"}</strong>
+              {!pollFailed && refreshElapsed && (
+                <span className="muted"> · 已用时 {refreshElapsed}</span>
+              )}
+            </div>
+            {!pollFailed && refreshDetail?.current_title && (
+              <div className="muted" style={{ marginTop: 4 }}>
+                当前：{refreshDetail.current_title}
+              </div>
+            )}
+            {!pollFailed &&
+              (refreshDetail?.cards_ok != null ||
+                refreshDetail?.prescreen_discarded != null ||
+                refreshDetail?.filtered != null ||
+                refreshDetail?.groups != null) && (
+              <div className="muted" style={{ marginTop: 4 }}>
+                {refreshDetail!.prescreen_discarded != null && (
+                  <span>初筛丢 {refreshDetail!.prescreen_discarded}</span>
+                )}
+                {refreshDetail!.survivors != null && (
+                  <span>
+                    {refreshDetail!.prescreen_discarded != null ? " · " : ""}
+                    幸存 {refreshDetail!.survivors}
+                  </span>
+                )}
+                {refreshDetail!.groups != null && (
+                  <span>
+                    {(refreshDetail!.prescreen_discarded != null ||
+                      refreshDetail!.survivors != null) &&
+                      " · "}
+                    候选组 {refreshDetail!.scanned ?? 0}/{refreshDetail!.groups}
+                  </span>
+                )}
+                {refreshDetail!.filtered != null &&
+                  refreshDetail!.filtered > 0 && (
+                    <span> · 漏杀记 {refreshDetail!.filtered}</span>
+                  )}
+                {refreshDetail!.skipped_existing != null &&
+                  refreshDetail!.skipped_existing > 0 && (
+                    <span> · 跳过已入卡 {refreshDetail!.skipped_existing}</span>
+                  )}
+                {refreshDetail!.cards_ok != null && (
+                  <span>
+                    {" "}
+                    · 入卡 {refreshDetail!.cards_ok}
+                    {refreshDetail!.llm_cap != null
+                      ? `/${refreshDetail!.llm_cap}`
+                      : ""}
+                  </span>
+                )}
+              </div>
+            )}
+            {!pollFailed && refreshDetail?.hint && (
+              <div className="muted" style={{ marginTop: 4 }}>
+                {refreshDetail.hint}
+              </div>
+            )}
+            {!pollFailed && !refreshDetail?.hint && (
+              <div className="muted" style={{ marginTop: 4 }}>
+                可切换到其他页；摘要阶段单条 AI 可能需数十秒，属正常。
+              </div>
+            )}
+            {!pollFailed && refreshStale && (
+              <div style={{ marginTop: 4 }}>
+                已超过约 3 分钟无进展心跳，可能卡住；可点「停止生成」。
+              </div>
             )}
           </div>
         )}
@@ -558,7 +679,9 @@ export default function FeedPage() {
               {tag ? ` · #${tag}` : ""}
             </div>
 
-            {primaryCards.length === 0 && lowSignalCards.length === 0 ? (
+            {primaryCards.length === 0 &&
+            lowSignalCards.length === 0 &&
+            foldedCards.length === 0 ? (
               <Empty icon="◎">
                 {refreshing ? (
                   <p>
@@ -589,6 +712,19 @@ export default function FeedPage() {
             ) : (
               <>
                 {primaryCards.map(renderCard)}
+                {foldedCards.length > 0 && (
+                  <div style={{ marginTop: "var(--s5)" }}>
+                    <button
+                      type="button"
+                      className="link-btn"
+                      onClick={() => setShowFolded((v) => !v)}
+                    >
+                      {showFolded ? "▾" : "▸"} 低优先折叠 {foldedCards.length}{" "}
+                      条（未摘要，可展开）
+                    </button>
+                    {showFolded && foldedCards.map(renderCard)}
+                  </div>
+                )}
                 {lowSignalCards.length > 0 && (
                   <div style={{ marginTop: "var(--s5)" }}>
                     <button
@@ -608,7 +744,7 @@ export default function FeedPage() {
             <p className="muted" style={{ marginTop: "var(--s5)" }}>
               {days <= 1 && (data?.filtered_count ?? 0) > 0 && (
                 <>
-                  本批过滤 {data?.filtered_count} 条{" · "}
+                  本批漏杀可查 {data?.filtered_count} 条{" · "}
                   <button
                     type="button"
                     className="link-btn"
@@ -632,11 +768,11 @@ export default function FeedPage() {
 
       {showFiltered && filtered && (
         <Modal
-          title="被过滤条目（漏杀可查）"
+          title="漏杀可查（次级分诊 / 调参审计）"
           onClose={() => setShowFiltered(false)}
         >
           {filtered.items.length === 0 ? (
-            <Empty>本批无被过滤条目。</Empty>
+            <Empty>本批无漏杀可查条目（初筛默认只计数；分诊未开时多为空）。</Empty>
           ) : (
             <ul className="item-list">
               {filtered.items.map((it) => (

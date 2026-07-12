@@ -58,6 +58,56 @@ class RelevanceLexicon:
                         tickers.append(t)
         return hit, tickers
 
+    def match_detail(
+        self, title: str, content: str
+    ) -> dict[str, object]:
+        """Breakdown for priority scoring (title tickers / body tickers / theme)."""
+        if self.is_blocked(title, content):
+            return {
+                "blocked": True,
+                "relevant": False,
+                "title_tickers": [],
+                "body_tickers": [],
+                "theme_hit": False,
+            }
+        head = _first_paragraph(content)
+        title_hay = title or ""
+        any_hay = f"{title}\n{head}"
+        title_tickers: list[str] = []
+        body_tickers: list[str] = []
+        theme_hit = False
+        for term, ticker, scope in self.terms:
+            if scope == "title":
+                if _contains(title_hay, term, mode="phrase") and ticker:
+                    t = ticker.upper()
+                    if t not in title_tickers:
+                        title_tickers.append(t)
+            else:
+                if _contains(any_hay, term, mode="substring"):
+                    if ticker:
+                        t = ticker.upper()
+                        # body-only if not already in title
+                        if t not in title_tickers and t not in body_tickers:
+                            if _contains(title_hay, term, mode="substring"):
+                                if t not in title_tickers:
+                                    title_tickers.append(t)
+                            else:
+                                body_tickers.append(t)
+                    else:
+                        theme_hit = True
+        # Also: ticker symbols appearing in title as tokens
+        relevant = bool(title_tickers or body_tickers or theme_hit)
+        # Reconcile with is_relevant for objects merge
+        hit, matched = self.is_relevant(title, content)
+        return {
+            "blocked": False,
+            "relevant": hit,
+            "title_tickers": title_tickers,
+            "body_tickers": body_tickers,
+            "theme_hit": theme_hit,
+            "matched": matched,
+        }
+
     def match(self, title: str, content: str) -> list[str]:
         hit, tickers = self.is_relevant(title, content)
         return tickers if hit else []

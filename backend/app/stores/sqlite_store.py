@@ -123,7 +123,10 @@ CREATE TABLE IF NOT EXISTS feed_cards (
     dedup_group TEXT,
     batch_date TEXT NOT NULL,
     marked_at TEXT,
-    user_comment TEXT
+    user_comment TEXT,
+    priority_score REAL,
+    priority_reasons TEXT,
+    folded INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_feed_cards_batch ON feed_cards(batch_date);
 CREATE INDEX IF NOT EXISTS idx_feed_cards_dedup ON feed_cards(dedup_group);
@@ -491,6 +494,55 @@ class SqliteStore(AppStore):
             self._conn.execute("ALTER TABLE feed_cards ADD COLUMN marked_at TEXT")
         if "user_comment" not in cols:
             self._conn.execute("ALTER TABLE feed_cards ADD COLUMN user_comment TEXT")
+        # Slice 3c priority / fold
+        cols = {
+            r[1]
+            for r in self._conn.execute("PRAGMA table_info(feed_cards)").fetchall()
+        }
+        if "priority_score" not in cols:
+            self._conn.execute(
+                "ALTER TABLE feed_cards ADD COLUMN priority_score REAL"
+            )
+        if "priority_reasons" not in cols:
+            self._conn.execute(
+                "ALTER TABLE feed_cards ADD COLUMN priority_reasons TEXT"
+            )
+        if "folded" not in cols:
+            self._conn.execute(
+                "ALTER TABLE feed_cards ADD COLUMN folded INTEGER NOT NULL DEFAULT 0"
+            )
+
+    @classmethod
+    def for_request(
+        cls,
+        db_path: Path,
+        journal_dir: Path,
+        *,
+        cloud_mirror: Optional[CloudMirror] = None,
+    ) -> "SqliteStore":
+        """Open a lightweight secondary connection for a single request.
+
+        Skips init_schema / migrations / seed — those run only in lifespan.
+        Uses busy_timeout=5000 (5 s) so request-path connections fail fast
+        under write contention rather than queuing behind digest.
+        """
+        inst = cls.__new__(cls)
+        inst.db_path = Path(db_path)
+        inst.journal_dir = Path(journal_dir)
+        conn = sqlite3.connect(
+            str(db_path),
+            check_same_thread=False,
+            timeout=5.0,
+        )
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        inst._conn = conn
+        from backend.app.stores.cloud_mirror import NullCloudMirror
+
+        inst._cloud_mirror = cloud_mirror or NullCloudMirror()
+        return inst
 
     def close(self) -> None:
         self._conn.close()
@@ -982,16 +1034,21 @@ class SqliteStore(AppStore):
             """
             INSERT INTO feed_cards (
                 id, fetched_at, published_at, source, title, url, summary,
-                objects, dedup_group, batch_date, marked_at, user_comment
+                objects, dedup_group, batch_date, marked_at, user_comment,
+                priority_score, priority_reasons, folded
             ) VALUES (
                 :id, :fetched_at, :published_at, :source, :title, :url, :summary,
-                :objects, :dedup_group, :batch_date, :marked_at, :user_comment
+                :objects, :dedup_group, :batch_date, :marked_at, :user_comment,
+                :priority_score, :priority_reasons, :folded
             )
             ON CONFLICT(id) DO UPDATE SET
                 summary=excluded.summary,
                 objects=excluded.objects,
                 url=excluded.url,
                 source=excluded.source,
+                priority_score=excluded.priority_score,
+                priority_reasons=excluded.priority_reasons,
+                folded=excluded.folded,
                 marked_at=COALESCE(excluded.marked_at, feed_cards.marked_at),
                 user_comment=COALESCE(excluded.user_comment, feed_cards.user_comment)
             """,
@@ -1282,6 +1339,17 @@ class SqliteStore(AppStore):
             (batch_date,),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def delete_feed_raw(self, *, batch_date: Optional[str] = None) -> int:
+        """Drop process-buffer raw rows (Slice 3c: digest 完即弃)."""
+        if batch_date:
+            cur = self._conn.execute(
+                "DELETE FROM feed_raw WHERE batch_date = ?", (batch_date,)
+            )
+        else:
+            cur = self._conn.execute("DELETE FROM feed_raw")
+        self._conn.commit()
+        return int(cur.rowcount or 0)
 
     # ── NarrativeScanStore ─────────────────────────────────
 

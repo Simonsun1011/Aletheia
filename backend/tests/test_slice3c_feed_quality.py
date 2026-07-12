@@ -1,4 +1,4 @@
-"""Slice 3c: per-ticker tier=base + relevance blocklist."""
+"""Slice 3c: per-ticker tier=base + relevance blocklist + prescreen-first."""
 
 from __future__ import annotations
 
@@ -60,6 +60,7 @@ def test_tickers_for_base_includes_base_and_focus(store):
 
 
 def test_blocklist_filters_law_firm_pr(store, monkeypatch):
+    """Primary screen discards blocklist hits; default = count only, no 漏杀 list."""
     store.insert_feed_raw(
         {
             "id": "law1",
@@ -89,12 +90,13 @@ def test_blocklist_filters_law_firm_pr(store, monkeypatch):
         "backend.app.services.digest.ai_adapter.complete", mock_complete
     )
     stats = digest_batch(store, "2026-07-12")
-    assert stats["filtered"] >= 1
+    assert stats["prescreen_discarded"] >= 1
+    assert stats["filtered"] == 0
     assert stats["ok"] == 0
     assert calls["n"] == 0
     assert store.list_feed_cards(batch_date="2026-07-12") == []
-    filtered = store.list_filtered_items(batch_date="2026-07-12")
-    assert any("Rosen Law" in i.title for i in filtered)
+    assert store.list_filtered_items(batch_date="2026-07-12") == []
+    assert store.list_feed_raw("2026-07-12") == []
 
 
 def test_blocklist_beats_positive_alias(store):
@@ -111,6 +113,8 @@ def test_blocklist_beats_positive_alias(store):
 
 
 def test_blocklist_visible_via_feed_filtered(client, store, monkeypatch):
+    """Only with FEED_PRESCREEN_AUDIT=1 do primary discards enter 查看漏杀."""
+    monkeypatch.setenv("FEED_PRESCREEN_AUDIT", "1")
     store.insert_feed_raw(
         {
             "id": "law2",
@@ -136,3 +140,65 @@ def test_blocklist_visible_via_feed_filtered(client, store, monkeypatch):
     assert r.status_code == 200
     titles = [i["title"] for i in r.json()["items"]]
     assert any("Bragar Eagel" in t for t in titles)
+
+
+def test_prescreen_before_dedup_and_raw_discarded(store, monkeypatch):
+    """Irrelevant noise is discarded before merge; feed_raw cleared after digest."""
+    for i in range(20):
+        store.insert_feed_raw(
+            {
+                "id": f"noise{i}",
+                "fetched_at": "2026-07-12T12:00:00Z",
+                "published_at": None,
+                "source": "PR Newswire Tech",
+                "title": f"Leadership Expert Shares Values in Real Estate #{i}",
+                "url": f"https://example.com/noise{i}",
+                "content": "Morgan Communities discussed daily leadership practices.",
+                "objects": "[]",
+                "batch_date": "2026-07-12",
+                "feed_id": "prnewswire_tech",
+            }
+        )
+    store.insert_feed_raw(
+        {
+            "id": "keep1",
+            "fetched_at": "2026-07-12T12:00:00Z",
+            "published_at": None,
+            "source": "PR Newswire Tech",
+            "title": "Applied Materials announces new etch tool",
+            "url": "https://example.com/amat",
+            "content": "The company shipped systems to leading foundries.",
+            "objects": "[]",
+            "batch_date": "2026-07-12",
+            "feed_id": "prnewswire_tech",
+        }
+    )
+    merge_calls = {"n": 0}
+    real_merge = __import__(
+        "backend.app.feed.dedup", fromlist=["merge_items"]
+    ).merge_items
+
+    def wrap_merge(items):
+        merge_calls["n"] += 1
+        merge_calls["size"] = len(items)
+        return real_merge(items)
+
+    monkeypatch.setattr("backend.app.services.digest.merge_items", wrap_merge)
+    monkeypatch.setattr(
+        "backend.app.services.digest.ai_adapter.complete",
+        lambda **k: CompletionResult(
+            text="Applied Materials announced a new etch tool for foundries.",
+            model="mock",
+            prompt_version="summarize_card_v2.md",
+            elapsed_ms=1,
+        ),
+    )
+    stats = digest_batch(store, "2026-07-12")
+    assert stats["raw"] == 21
+    assert stats["prescreen_discarded"] == 20
+    assert stats["survivors"] == 1
+    assert stats["ok"] == 1
+    assert merge_calls["n"] == 1
+    assert merge_calls["size"] == 1
+    assert store.list_feed_raw("2026-07-12") == []
+    assert store.list_filtered_items(batch_date="2026-07-12") == []

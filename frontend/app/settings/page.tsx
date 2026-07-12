@@ -7,6 +7,11 @@ import { toast } from "@/components/toast";
 import { money, num } from "@/lib/format";
 import { useGlossaryOptional } from "@/components/glossary-provider";
 
+const API_BASE =
+  typeof process !== "undefined"
+    ? (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000")
+    : "http://localhost:8000";
+
 type AggRow = {
   key: string;
   tokens_in: number;
@@ -72,6 +77,7 @@ export default function SettingsPage() {
   const [resetBusy, setResetBusy] = useState(false);
   const [proposed, setProposed] = useState<TagRow[]>([]);
   const [tagBusy, setTagBusy] = useState(false);
+  const [diagBusy, setDiagBusy] = useState(false);
   const glossary = useGlossaryOptional();
 
   const refresh = useCallback(async () => {
@@ -162,6 +168,30 @@ export default function SettingsPage() {
       toast.error(String((e as Error).message ?? e));
     } finally {
       setTagBusy(false);
+    }
+  }
+
+  async function onExportDiagnostics() {
+    setDiagBusy(true);
+    try {
+      const resp = await fetch(`${API_BASE}/api/diagnostics/export`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const cd = resp.headers.get("content-disposition") ?? "";
+      const m = cd.match(/filename="?([^"]+)"?/);
+      a.download = m ? m[1] : "aletheia-diagnostics.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("诊断包已下载（不含密钥）");
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    } finally {
+      setDiagBusy(false);
     }
   }
 
@@ -301,6 +331,22 @@ export default function SettingsPage() {
             在 .env 设置 OBSIDIAN_EXPORT_DIR 后，「加入知识笔记」可用。路径含空格勿拆分。
           </p>
         )}
+      </Card>
+
+      <Card title="系统诊断">
+        <p className="muted" style={{ marginBottom: "var(--s3)" }}>
+          打包近期运行日志（约 200 KB）与状态快照，供远程定位问题。不含任何密钥或 .env 内容。
+        </p>
+        <div className="actions">
+          <button
+            type="button"
+            className="secondary"
+            disabled={diagBusy}
+            onClick={() => void onExportDiagnostics()}
+          >
+            {diagBusy ? "打包中…" : "导出诊断包"}
+          </button>
+        </div>
       </Card>
 
       {loading && !data ? (

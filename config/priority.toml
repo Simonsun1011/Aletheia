@@ -1,0 +1,62 @@
+# 信息流优先分权重（Slice 3c / DESIGN §3.0.1）
+# 纯启发式、无 LLM；调权只改本文件。
+
+[weights]
+# 信源权威
+source_sec = 40
+source_ticker_news = 25
+source_wire = 5
+source_other = 8
+
+# 命中强度
+hit_title_ticker = 30
+hit_theme = 12
+hit_body_ticker = 6
+
+# 标的档位（取 objects 中最高档）
+tier_focus = 15
+tier_base = 5
+tier_other = 0
+
+# 事件类型
+event_boost = 18
+event_penalty = -22
+
+# 去重簇：每个额外来源
+cluster_per_extra = 8
+cluster_cap = 24
+
+# 新鲜度：24h 内满分，之后线性衰减
+fresh_full_hours = 24
+fresh_max = 10
+
+[event_boost_terms]
+terms = [
+  "earnings",
+  "guidance",
+  "capex",
+  "8-K",
+  "8k",
+  "form 8",
+  "acquisition",
+  "merger",
+  "buyback",
+  "dividend",
+  "revenue",
+  "outlook",
+  "财报",
+  "指引",
+  "并购",
+]
+
+[event_penalty_terms]
+terms = [
+  "class action",
+  "shareholder alert",
+  "investigation",
+  "appoints",
+  "names",
+  "partnership announcement",
+  "welcomes",
+  "low-signal",
+]

@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
+import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -16,6 +18,7 @@ from typing import Any, Callable, Optional
 from ulid import ULID
 
 from backend.app.feed.config import enabled_feeds
+from backend.app.logging_setup import set_request_id
 from backend.app.services.digest import digest_batch
 from backend.app.stores.base import AppStore
 
@@ -25,16 +28,28 @@ _refresh_lock = threading.Lock()
 _state_lock = threading.Lock()
 _state: dict[str, Any] = {
     "running": False,
-    "phase": None,  # fetch | digest | done | error | cancelled
+    "phase": None,  # fetch | digest | done | error | cancelled | timeout
     "batch_date": None,
     "started_at": None,
     "finished_at": None,
     "heartbeat_at": None,
     "message": None,
+    "detail": None,  # structured progress for UI
     "error": None,
     "result": None,
+    "run_id": None,
 }
 _cancel_requested = False
+
+
+def _digest_max_seconds() -> int:
+    raw = os.environ.get("DIGEST_MAX_SECONDS", "").strip()
+    if not raw:
+        return 1800
+    try:
+        return max(60, int(raw))
+    except ValueError:
+        return 1800
 
 
 def _now() -> str:
@@ -115,13 +130,21 @@ def _feed_raw_empty(store: AppStore) -> bool:
 def _set_state(**kwargs: Any) -> None:
     with _state_lock:
         _state.update(kwargs)
-        if "message" in kwargs or kwargs.get("running") or kwargs.get("phase"):
+        if (
+            "message" in kwargs
+            or "detail" in kwargs
+            or kwargs.get("running")
+            or kwargs.get("phase")
+        ):
             _state["heartbeat_at"] = _now()
 
 
 def refresh_status() -> dict[str, Any]:
     with _state_lock:
-        return dict(_state)
+        s = dict(_state)
+    # last_progress_at is an alias for heartbeat_at (heartbeat is the canonical name)
+    s["last_progress_at"] = s.get("heartbeat_at")
+    return s
 
 
 def request_refresh_cancel() -> dict[str, Any]:
@@ -249,9 +272,30 @@ def _run_refresh(
 ) -> dict[str, Any]:
     batch = batch_date or _today()
     _reset_cancel()
+    run_start = time.monotonic()
+    max_secs = _digest_max_seconds()
+    _timed_out = False
 
-    def progress(msg: str) -> None:
-        _set_state(message=msg)
+    def _should_stop_combined() -> bool:
+        nonlocal _timed_out
+        if _cancel_flag():
+            return True
+        if time.monotonic() - run_start > max_secs:
+            if not _timed_out:
+                _timed_out = True
+                log.warning(
+                    "digest watchdog triggered elapsed=%.0fs max=%ss",
+                    time.monotonic() - run_start,
+                    max_secs,
+                )
+            return True
+        return False
+
+    def progress(msg: str, detail: Optional[dict[str, Any]] = None) -> None:
+        if detail is None:
+            _set_state(message=msg)
+        else:
+            _set_state(message=msg, detail=detail)
 
     _set_state(
         running=True,
@@ -261,6 +305,7 @@ def _run_refresh(
         finished_at=None,
         error=None,
         result=None,
+        detail=None,
         message="开始生成今日简报…",
     )
     try:
@@ -273,14 +318,18 @@ def _run_refresh(
         if not skip_fetch:
             if _cancel_flag():
                 raise InterruptedError("cancelled before fetch")
-            _set_state(phase="fetch", message="正在抓取信源…")
+            _set_state(phase="fetch", message="正在抓取信源…", detail={"step": "fetch"})
             fetch_stats = fetch_batch(store, batch, on_progress=progress)
-        _set_state(phase="digest", message="正在摘要与打标…")
+        _set_state(
+            phase="digest",
+            message="准备摘要：读取并去重原始稿…",
+            detail={"step": "digest_prepare"},
+        )
         digest_stats = digest_batch(
             store,
             batch,
             on_progress=progress,
-            should_stop=_cancel_flag,
+            should_stop=_should_stop_combined,
         )
         cards = store.list_feed_cards(batch_date=batch, days=1)
         result = {
@@ -290,15 +339,20 @@ def _run_refresh(
             "cards": len(cards),
         }
         cancelled = bool(digest_stats.get("cancelled")) or _cancel_flag()
+        if _timed_out:
+            phase = "timeout"
+            msg = f"看门狗超时（>{max_secs}s）：入卡 {len(cards)} 条"
+        elif cancelled:
+            phase = "cancelled"
+            msg = f"已停止：入卡 {len(cards)} 条"
+        else:
+            phase = "done"
+            msg = f"完成：入卡 {len(cards)} 条"
         _set_state(
             running=False,
-            phase="cancelled" if cancelled else "done",
+            phase=phase,
             finished_at=_now(),
-            message=(
-                f"已停止：入卡 {len(cards)} 条"
-                if cancelled
-                else f"完成：入卡 {len(cards)} 条"
-            ),
+            message=msg,
             result=result,
             error=None,
         )
@@ -340,9 +394,12 @@ def start_refresh_background(
     if not _refresh_lock.acquire(blocking=False):
         return {"accepted": False, **refresh_status()}
 
+    run_id = str(ULID())
+
     def worker() -> None:
         from backend.app.stores.sqlite_store import SqliteStore
 
+        set_request_id(run_id)
         store = SqliteStore(db_path, journal_dir)
         try:
             store.init_schema()
@@ -367,6 +424,7 @@ def start_refresh_background(
         error=None,
         result=None,
         message="已排队，即将开始…",
+        run_id=run_id,
     )
     t = threading.Thread(target=worker, name="feed-refresh", daemon=True)
     t.start()

@@ -50,6 +50,7 @@ def _raw(**kwargs):
 
 
 def test_irrelevant_goes_to_filtered_no_llm(store, monkeypatch):
+    """Primary screen discards noise; default does not fill 查看漏杀 list."""
     store.insert_feed_raw(
         _raw(
             id="noise",
@@ -71,11 +72,13 @@ def test_irrelevant_goes_to_filtered_no_llm(store, monkeypatch):
 
     monkeypatch.setattr("backend.app.services.digest.ai_adapter.complete", mock_complete)
     stats = digest_batch(store, "2026-07-11")
-    assert stats["filtered"] == 1
+    assert stats["prescreen_discarded"] == 1
+    assert stats["filtered"] == 0
     assert stats["ok"] == 0
     assert calls["n"] == 0
     assert store.list_feed_cards(batch_date="2026-07-11") == []
-    assert len(store.list_filtered_items(batch_date="2026-07-11")) == 1
+    assert store.list_filtered_items(batch_date="2026-07-11") == []
+    assert store.list_feed_raw("2026-07-11") == []
 
 
 def test_alias_match_enters_card_with_object(store, monkeypatch):
@@ -158,6 +161,8 @@ def test_skip_relevance_source_bypasses_filter(store, monkeypatch, tmp_path):
 
 
 def test_get_feed_filtered(client, store, monkeypatch):
+    """查看漏杀 only lists primary discards when FEED_PRESCREEN_AUDIT=1."""
+    monkeypatch.setenv("FEED_PRESCREEN_AUDIT", "1")
     store.insert_feed_raw(
         _raw(
             id="noise2",
