@@ -375,7 +375,13 @@ export default function FeedPage() {
       );
       toast.success(result.cached ? "已读取缓存摘要" : "摘要已生成");
     } catch (e) {
-      toast.error(String((e as Error).message ?? e));
+      const raw = String((e as Error).message ?? e);
+      const msg = raw.includes("AI_GUARD_VIOLATION")
+        ? "摘要含禁词（买卖建议或影响判断），已拦截。请读原文，或稍后再试。"
+        : raw.includes("SUMMARY_LANGUAGE_MISMATCH")
+          ? "摘要语言须与原文一致，已拦截。"
+          : raw;
+      toast.error(msg);
     } finally {
       setSummaryBusy((v) => ({ ...v, [card.id]: false }));
     }

@@ -7,7 +7,9 @@ patterns = [
   "(强烈)?(看多|看空)",
   "目标价",
   "应该(买|卖|加仓|减仓)",
-  "(?i)\\b(buy|sell|strong buy|strong sell|price target)\\b",
+  "(?i)\\b(strong buy|strong sell|price target)\\b",
+  "(?i)\\bbuy\\b(?!\\s+points?\\b)(?!\\s+zone\\b)",
+  "(?i)\\bsell\\b(?!\\s+signals?\\b)(?!\\s+side\\b)",
   "仓位建议",
 ]
 
@@ -41,7 +43,9 @@ always_block = [
 conditional_block = [
   "(强烈)?(看多|看空)",
   "目标价",
-  "(?i)\\b(buy|sell|price target)\\b",
+  "(?i)\\b(strong buy|strong sell|price target)\\b",
+  "(?i)\\bbuy\\b(?!\\s+points?\\b)(?!\\s+zone\\b)",
+  "(?i)\\bsell\\b(?!\\s+signals?\\b)(?!\\s+side\\b)",
 ]
 
 # 命中 conditional_block 时，若全文同时命中任一 attribution_allows → 放行该条件项

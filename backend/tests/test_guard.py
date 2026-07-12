@@ -89,6 +89,19 @@ def test_english_buy_sell_not_substring_of_russell():
     assert not guard("We should sell AMAT now", ruleset="attributed_views").ok
 
 
+def test_summary_allows_buy_points_jargon():
+    """Chart-term 'buy points' in factual echo must not trip conclusion buy rule."""
+    r = guard(
+        "Nvidia and Micron traded near buy points as Dow futures slipped.",
+        ruleset="summary",
+    )
+    assert r.ok, r.matched
+
+
+def test_summary_still_blocks_recommend_buy():
+    assert not guard("Investors should buy NVDA here.", ruleset="summary").ok
+
+
 def test_attributed_views_exemptions_only_from_config():
     """No exemption strings hard-coded in guard.py."""
     src = Path("backend/app/ai/guard.py").read_text(encoding="utf-8")
