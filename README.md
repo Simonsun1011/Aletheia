@@ -36,7 +36,7 @@ cd Aletheia
 python3 -m venv .venv
 .venv/bin/pip install -r backend/requirements.txt
 cp .env.example .env
-# 编辑 .env，填入你自己的 AI 密钥（OPENAI_API_KEY 等）
+# 用任意文本编辑器打开 .env，按下面「配置说明」填写
 
 cd frontend && npm install && cd ..
 ./scripts/dev.sh
@@ -45,7 +45,24 @@ cd frontend && npm install && cd ..
 
 浏览器打开：http://127.0.0.1:3000
 
-请使用你自己的 API Key，不要共用他人密钥。
+### 配置说明（`.env`）
+
+`.env` 是本机私密配置文件（**不要发给别人、也不要提交到 GitHub**）。仓库里只有模板 `.env.example`：先复制成 `.env`，再改里面的值。
+
+用记事本、VS Code、Cursor 等打开 `.env` 即可。以 `#` 开头的是注释；`名字=值` 是一项配置。多数项有默认值，**新手通常只需要改 AI 相关几行**。
+
+| 配置项 | 要不要填 | 含义 |
+|--------|----------|------|
+| `OPENAI_API_KEY` | **建议必填** | 调用 AI 的密钥。没有它，信息流摘要、操作台叙事扫描等 AI 功能不可用。向你的模型服务商申请后，把 `sk-...` 填在等号后面。 |
+| `OPENAI_API_BASE` | 看情况 | 若走官方 OpenAI，可不填；若用中转/兼容接口，填对方给你的地址（形如 `https://某域名/v1`）。 |
+| `MODEL_SUMMARY` | 可选 | 摘要用的模型名，模板里已有默认值，一般不用改。 |
+| `MODEL_SEARCH` | 可选 | 操作台「叙事扫描」用的模型（需支持联网搜索）。不填则该功能禁用，其它功能仍可用。 |
+| `ANTHROPIC_API_KEY` | 可选 | 只有当你改用 Anthropic 模型时才需要。 |
+| `MONTHLY_LLM_BUDGET_USD` | 可选 | 每月 AI 花费上限（美元）。超限后部分批处理会跳过 AI，防止账单失控。 |
+| `OBSIDIAN_EXPORT_DIR` | 可选 | 若用 Obsidian：填本机笔记文件夹的**绝对路径**。不填则「加入知识笔记」按钮不可用。 |
+| `NEXT_PUBLIC_API_BASE` | 一般不用 | 前端找后端的地址。默认 `http://127.0.0.1:8000/api`；只有改过后端端口时才需同步修改。 |
+
+路径、数据库、日志、CORS 等其余项保持模板默认即可。密钥只放在你自己电脑的 `.env` 里，请使用**你自己的** Key，不要共用他人密钥。
 
 ---
 
