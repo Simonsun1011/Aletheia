@@ -63,7 +63,7 @@ cd frontend && npm install && cd ..
 | Slice 7 | 术语 / 字段标签 / 叙事三栏 / 术语匹配（部分能力仍在后续切片） |
 | Slice 8+ | 信息流筛选与标签、AI 能力扩展等（规划中） |
 
-权威设计见 [`DESIGN.md`](./DESIGN.md)；切片任务书在 [`docs/slices/`](./docs/slices/)。
+设计文档与切片任务书仅在作者本机维护，不随本仓库公开。
 
 技术栈：FastAPI + SQLite · Next.js · LiteLLM（供应商无关）· 本机优先。
 
