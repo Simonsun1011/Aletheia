@@ -240,6 +240,11 @@ def test_lazy_summary_and_translation_are_cached(client, store, monkeypatch):
     assert translated.status_code == translated_again.status_code == 200
     assert translated_again.json()["cached"] is True
     assert len(calls) == 2
+    assert store.get_summary_translation("lazy", "zh") == "美光开设了 HBM 生产线。"
+
+    feed = client.get("/api/feed?days=1").json()
+    card = next(c for c in feed["cards"] if c["id"] == "lazy")
+    assert card["summary_translations"]["zh"] == "美光开设了 HBM 生产线。"
 
 
 def test_lazy_summary_guard_and_missing_excerpt(client, store, monkeypatch):

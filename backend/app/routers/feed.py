@@ -48,7 +48,12 @@ def _parse_objects(card: FeedCard) -> list:
     return objects if isinstance(objects, list) else []
 
 
-def _card_view(card: FeedCard, tags: list) -> dict:
+def _card_view(
+    card: FeedCard,
+    tags: list,
+    *,
+    summary_translations: Optional[dict[str, str]] = None,
+) -> dict:
     urls: list[str]
     try:
         parsed = json.loads(card.url)
@@ -94,6 +99,7 @@ def _card_view(card: FeedCard, tags: list) -> dict:
         "folded": bool(card.folded),
         "priority_reasons_list": reasons,
         "priority_label": " · ".join(reasons[:3]) if reasons else None,
+        "summary_translations": summary_translations or {},
     }
 
 
@@ -172,7 +178,17 @@ def list_feed(
         batch = None
 
     tag_map = store.list_tags_for_cards([c.id for c in cards])
-    views = [_card_view(c, tag_map.get(c.id, [])) for c in cards]
+    zh_map = store.list_summary_translations([c.id for c in cards], lang="zh")
+    views = [
+        _card_view(
+            c,
+            tag_map.get(c.id, []),
+            summary_translations=(
+                {"zh": zh_map[c.id]} if c.id in zh_map else {}
+            ),
+        )
+        for c in cards
+    ]
     unclassified_count = sum(1 for v in views if v.get("unclassified"))
     return {
         "batch_date": batch if (days is None or days <= 1) else None,
@@ -282,7 +298,12 @@ def mark_card(card_id: str, body: FeedCardMarkRequest, store: StoreDep):
         )
 
     tags = store.list_card_tags(card_id)
-    return _card_view(card, tags)
+    zh = store.get_summary_translation(card_id, "zh")
+    return _card_view(
+        card,
+        tags,
+        summary_translations={"zh": zh} if zh else {},
+    )
 
 
 @router.post("/{card_id}/summary")

@@ -159,6 +159,17 @@ class FeedStore(ABC):
     ) -> str:
         ...
 
+    def list_summary_translations(
+        self, card_ids: list[str], *, lang: str
+    ) -> dict[str, str]:
+        """Return {card_id: text} for cached translations of one language."""
+        out: dict[str, str] = {}
+        for card_id in card_ids:
+            text = self.get_summary_translation(card_id, lang)
+            if text:
+                out[card_id] = text
+        return out
+
     @abstractmethod
     def latest_batch_date(self) -> Optional[str]:
         ...

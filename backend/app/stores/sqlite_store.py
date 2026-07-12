@@ -1165,6 +1165,21 @@ class SqliteStore(AppStore):
         self._conn.commit()
         return text
 
+    def list_summary_translations(
+        self, card_ids: list[str], *, lang: str
+    ) -> dict[str, str]:
+        if not card_ids:
+            return {}
+        placeholders = ",".join("?" for _ in card_ids)
+        rows = self._conn.execute(
+            f"""
+            SELECT card_id, text FROM summary_translations
+            WHERE lang = ? AND card_id IN ({placeholders})
+            """,
+            (lang, *card_ids),
+        ).fetchall()
+        return {str(r["card_id"]): str(r["text"]) for r in rows}
+
     def get_feed_card(self, card_id: str) -> Optional[FeedCard]:
         row = self._conn.execute(
             "SELECT * FROM feed_cards WHERE id = ?", (card_id,)

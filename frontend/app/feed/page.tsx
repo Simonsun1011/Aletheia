@@ -32,6 +32,7 @@ type FeedCardView = {
   excerpt?: string | null;
   summary_generated_at?: string | null;
   comment_source_lang?: string | null;
+  summary_translations?: Record<string, string>;
   source?: string | null;
   urls: string[];
   object_list: string[];
@@ -125,6 +126,13 @@ export default function FeedPage() {
       if (tag) qs.set("tag", tag);
       const body = await apiGet<FeedResponse>(`/feed?${qs.toString()}`);
       setData(body);
+      const cached: Record<string, string> = {};
+      for (const card of body.cards) {
+        const zh = card.summary_translations?.zh;
+        if (zh) cached[card.id] = zh;
+      }
+      setTranslations(cached);
+      setShownTranslations({});
     } catch (e) {
       const msg = String((e as Error).message ?? e);
       setLoadError(msg);
@@ -392,7 +400,9 @@ export default function FeedPage() {
       setShownTranslations((v) => ({ ...v, [card.id]: false }));
       return;
     }
-    if (translations[card.id]) {
+    if (translations[card.id] || card.summary_translations?.zh) {
+      const text = translations[card.id] || card.summary_translations?.zh || "";
+      setTranslations((v) => ({ ...v, [card.id]: text }));
       setShownTranslations((v) => ({ ...v, [card.id]: true }));
       return;
     }
@@ -404,6 +414,25 @@ export default function FeedPage() {
       );
       setTranslations((v) => ({ ...v, [card.id]: result.text }));
       setShownTranslations((v) => ({ ...v, [card.id]: true }));
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              cards: current.cards.map((item) =>
+                item.id === card.id
+                  ? {
+                      ...item,
+                      summary_translations: {
+                        ...(item.summary_translations ?? {}),
+                        zh: result.text,
+                      },
+                    }
+                  : item
+              ),
+            }
+          : current
+      );
+      toast.success(result.cached ? "已读取缓存译文" : "译文已生成并保存");
     } catch (e) {
       toast.error(String((e as Error).message ?? e));
     } finally {
@@ -539,7 +568,9 @@ export default function FeedPage() {
                 ? "翻译中…"
                 : shownTranslations[c.id]
                   ? "收起译文"
-                  : "翻译成中文"}
+                  : translations[c.id] || c.summary_translations?.zh
+                    ? "查看中文译文"
+                    : "翻译成中文"}
             </button>
           </div>
         )}
