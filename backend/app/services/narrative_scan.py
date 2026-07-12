@@ -68,6 +68,7 @@ def _empty_payload(model: Optional[str] = None) -> NarrativeScanPayload:
         dominant_narrative=EMPTY_NARRATIVE,
         bull_points=[],
         bear_points=[],
+        neutral_points=[],
         recent_events=[],
         generated_at=_now(),
         model=model,
@@ -75,7 +76,12 @@ def _empty_payload(model: Optional[str] = None) -> NarrativeScanPayload:
 
 
 def _has_content(payload: NarrativeScanPayload) -> bool:
-    if payload.bull_points or payload.bear_points or payload.recent_events:
+    if (
+        payload.bull_points
+        or payload.bear_points
+        or payload.neutral_points
+        or payload.recent_events
+    ):
         return True
     dom = (payload.dominant_narrative or "").strip()
     return bool(dom) and dom != EMPTY_NARRATIVE
@@ -105,7 +111,7 @@ def _guard_payload(payload: NarrativeScanPayload) -> None:
     #   analyst PT move as a fact must not fail the whole scan — over-blocking
     #   caused the 00:48 incident (matched=['目标价'] on recent_events).
     _guard_chunk(payload.dominant_narrative, attributed=True)
-    for p in payload.bull_points + payload.bear_points:
+    for p in payload.bull_points + payload.bear_points + payload.neutral_points:
         attributed = bool(p.attributed_to and p.attributed_to.strip())
         _guard_chunk(p.point, attributed=attributed)
     for e in payload.recent_events:
@@ -202,14 +208,15 @@ def run_narrative_scan(
     user_content = (
         f"ticker: {ticker}\n"
         f"last_earnings_date: {earnings}\n"
-        "Focus dominant_narrative and bull/bear on narratives since last earnings; "
+        "Focus dominant_narrative and bull/bear/neutral on narratives since last earnings; "
         f"recent_events only within the last {RECENT_EVENTS_MAX_DAYS} days. "
-        "Every bull/bear point and recent_event must include date (YYYY-MM-DD)."
+        "Every bull/bear/neutral point and recent_event must include date (YYYY-MM-DD)."
     )
     retry_hint = (
         "\n\nIMPORTANT: Rewrite without any of: 目标价, price target, PT, "
         "建议买入, 建议卖出, buy/sell recommendations, or position sizing."
-        "\nEvery bull_points/bear_points item needs attributed_to, point, source_url, date."
+        "\nEvery bull_points/bear_points/neutral_points item needs "
+        "attributed_to, point, source_url, date."
         "\nIf there is no reliable new narrative, return empty arrays and "
         f'set dominant_narrative to "{EMPTY_NARRATIVE}".'
     )
@@ -243,10 +250,11 @@ def run_narrative_scan(
             )
             continue
 
-        for p in payload.bull_points + payload.bear_points:
+        for p in payload.bull_points + payload.bear_points + payload.neutral_points:
             if not p.source_url:
                 last_err = NarrativeScanError(
-                    "VALIDATION_ERROR", "bull/bear point missing source_url"
+                    "VALIDATION_ERROR",
+                    "bull/bear/neutral point missing source_url",
                 )
                 break
         else:

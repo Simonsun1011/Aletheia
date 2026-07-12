@@ -33,6 +33,7 @@ from backend.app.models import (
 )
 from backend.app.stores import jsonl_mirror
 from backend.app.stores.base import AppStore, ConflictError
+from backend.app.stores.cloud_mirror import CloudMirror, NullCloudMirror
 
 # CONTRACT-ISSUE: data-model.md says root.status is set to 'closed' when a
 # review entry is appended, but append-only + BEFORE UPDATE triggers forbid
@@ -178,7 +179,8 @@ CREATE TABLE IF NOT EXISTS glossary (
     sources TEXT,
     version INTEGER DEFAULT 1,
     state TEXT CHECK (state IN ('unknown','known','saved')),
-    updated_at TEXT
+    updated_at TEXT,
+    aliases TEXT
 );
 
 CREATE TABLE IF NOT EXISTS executions (
@@ -276,7 +278,13 @@ def _new_id() -> str:
 
 
 class SqliteStore(AppStore):
-    def __init__(self, db_path: Path, journal_dir: Path) -> None:
+    def __init__(
+        self,
+        db_path: Path,
+        journal_dir: Path,
+        *,
+        cloud_mirror: Optional[CloudMirror] = None,
+    ) -> None:
         self.db_path = Path(db_path)
         self.journal_dir = Path(journal_dir)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -284,12 +292,21 @@ class SqliteStore(AppStore):
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
+        self._cloud_mirror: CloudMirror = cloud_mirror or NullCloudMirror()
+
+    def _mirror_push(self, table: str, row: dict[str, Any]) -> None:
+        """Best-effort offsite mirror after local durability (JSONL+SQLite)."""
+        try:
+            self._cloud_mirror.push(table, row)
+        except Exception as e:
+            store_log.error("cloud mirror push failed table=%s: %s", table, e)
 
     def init_schema(self) -> None:
         self._conn.executescript(SCHEMA_SQL)
         self._conn.executescript(TRIGGER_SQL)
         self._migrate_v11_v12()
         self._migrate_v16_v17()
+        self._migrate_glossary_aliases()
         from backend.app.services.glossary import import_glossary_seed
 
         try:
@@ -386,6 +403,15 @@ class SqliteStore(AppStore):
             self._conn.execute("ALTER TABLE events ADD COLUMN scope TEXT")
         if ecols and "user_comment" not in ecols:
             self._conn.execute("ALTER TABLE events ADD COLUMN user_comment TEXT")
+
+    def _migrate_glossary_aliases(self) -> None:
+        """Slice 7 term-matching：glossary.aliases TEXT（JSON 数组）。"""
+        cols = {
+            r[1]
+            for r in self._conn.execute("PRAGMA table_info(glossary)").fetchall()
+        }
+        if cols and "aliases" not in cols:
+            self._conn.execute("ALTER TABLE glossary ADD COLUMN aliases TEXT")
 
     def close(self) -> None:
         self._conn.close()
@@ -494,6 +520,7 @@ class SqliteStore(AppStore):
             entry.jtype,
             entry.origin,
         )
+        self._mirror_push("judgment_entries", row)
         return entry
 
     def append_judgment(self, root_id: str, body: JudgmentAppend) -> JudgmentEntry:
@@ -582,6 +609,7 @@ class SqliteStore(AppStore):
             entry.kind,
             entry.id,
         )
+        self._mirror_push("judgment_entries", row)
         return entry
 
     def list_chains(
@@ -643,6 +671,7 @@ class SqliteStore(AppStore):
         )
         self._conn.commit()
         store_log.info("note created id=%s object=%s", note.id, note.object)
+        self._mirror_push("quick_notes", row)
         return note
 
     def list_notes(
@@ -695,6 +724,7 @@ class SqliteStore(AppStore):
             item.model_dump(),
         )
         self._conn.commit()
+        self._mirror_push("watchlist", item.model_dump())
         return item
 
     def archive_watchlist(self, ticker: str, body: WatchlistArchive) -> WatchlistItem:
@@ -913,6 +943,30 @@ class SqliteStore(AppStore):
 
         return get_glossary_term(self._conn, term)
 
+    def list_glossary(self) -> list[dict[str, Any]]:
+        from backend.app.services.glossary import list_glossary_terms
+
+        return list_glossary_terms(self._conn)
+
+    def set_glossary_state(self, term: str, state: str) -> Optional[dict[str, Any]]:
+        from backend.app.services.glossary import set_glossary_state
+
+        return set_glossary_state(self._conn, term, state)
+
+    def reset_known_glossary(self) -> int:
+        from backend.app.services.glossary import reset_known_glossary
+
+        return reset_known_glossary(self._conn)
+
+    def export_glossary_obsidian(
+        self, term: str, *, context: Optional[str] = None, note: Optional[str] = None
+    ) -> dict[str, Any]:
+        from backend.app.services.glossary import export_glossary_to_obsidian
+
+        return export_glossary_to_obsidian(
+            self._conn, term, context=context, note=note
+        )
+
     def insert_feed_raw(self, row: dict[str, Any]) -> None:
         self._conn.execute(
             """
@@ -1082,6 +1136,8 @@ class SqliteStore(AppStore):
             rec.shares,
             rec.price,
         )
+        if commit:
+            self._mirror_push("executions", row)
         return rec
 
     def create_execution(self, body: ExecutionCreate) -> ExecutionRecord:
@@ -1127,6 +1183,9 @@ class SqliteStore(AppStore):
         jsonl_mirror.append_row(
             self.journal_dir, "executions", voided.model_dump()
         )
+        self._mirror_push("executions", voided.model_dump())
+        if replacement_row is not None:
+            self._mirror_push("executions", replacement_row.model_dump())
         store_log.info(
             "execution voided id=%s voided_by=%s replacement=%s",
             exec_id,
@@ -1192,4 +1251,26 @@ class SqliteStore(AppStore):
                 )
             )
         return positions
+
+    # ── snapshots (daily machine state; upsert OK) ─────────
+
+    def upsert_snapshot(self, date: str, module: str, payload: dict[str, Any]) -> None:
+        self._conn.execute(
+            """
+            INSERT INTO snapshots (date, module, payload)
+            VALUES (?, ?, ?)
+            ON CONFLICT(date, module) DO UPDATE SET payload=excluded.payload
+            """,
+            (date, module, json.dumps(payload, ensure_ascii=False)),
+        )
+        self._conn.commit()
+
+    def get_snapshot(self, date: str, module: str) -> Optional[dict[str, Any]]:
+        row = self._conn.execute(
+            "SELECT payload FROM snapshots WHERE date = ? AND module = ?",
+            (date, module),
+        ).fetchone()
+        if not row:
+            return None
+        return json.loads(row["payload"])
 

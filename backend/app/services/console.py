@@ -11,6 +11,7 @@ import pandas as pd
 
 from backend.app.config import Settings, get_settings
 from backend.app.market.db import connect_market_db
+from backend.app.market.ensure import ensure_local_market_data
 from backend.app.market.snapshot import build_snapshot
 from backend.app.services.narrative_scan import search_model_configured
 from backend.app.services.panel_notes import panel_note
@@ -122,9 +123,9 @@ def fetch_macro(market_db: Path) -> tuple[Optional[dict], list[str]]:
 
 
 def fetch_fundamental(symbol: str) -> tuple[Optional[dict], list[str]]:
-    warnings = ["EPS修正趋势数据暂缺（免费源无此数据）"]
+    warnings = ["EPS修正趋势数据暂缺（开源数据源无此数据）"]
     out: dict[str, Any] = {
-        "eps_revision_note": "EPS修正趋势数据暂缺（免费源无此数据）",
+        "eps_revision_note": "开源数据源无此数据",
         "forward_eps": None,
         "forward_pe": None,
         "recommendation_mean": None,
@@ -250,6 +251,13 @@ def build_console(
     symbol = symbol.upper()
     warnings: list[str] = []
     as_of = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Technical/plan need local bars; fetch on demand so any US ticker works
+    # without a prior jobs run. Other panels stay independent if this fails.
+    try:
+        warnings.extend(ensure_local_market_data(settings.market_db_path, symbol))
+    except Exception as e:
+        warnings.append(f"market ensure failed: {e}")
 
     macro_fn = macro_fn or fetch_macro
     fundamental_fn = fundamental_fn or fetch_fundamental

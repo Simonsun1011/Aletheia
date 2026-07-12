@@ -202,6 +202,18 @@ class ExecutionStore(ABC):
         ...
 
 
+class SnapshotStore(ABC):
+    """Daily machine snapshots (app.db). Presentational; upsert allowed."""
+
+    @abstractmethod
+    def upsert_snapshot(self, date: str, module: str, payload: dict[str, Any]) -> None:
+        ...
+
+    @abstractmethod
+    def get_snapshot(self, date: str, module: str) -> Optional[dict[str, Any]]:
+        ...
+
+
 class AppStore(
     JudgmentStore,
     NoteStore,
@@ -211,6 +223,7 @@ class AppStore(
     NarrativeScanStore,
     LlmUsageStore,
     ExecutionStore,
+    SnapshotStore,
     ABC,
 ):
     """Combined store used by the app (single SQLite + JSONL backend in v1)."""

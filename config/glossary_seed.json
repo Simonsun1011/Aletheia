@@ -1,34 +1,1306 @@
 {
+  "schema_version": 1,
+  "_note": "术语种子词典（规划层Claude交付，DESIGN §3.5.5）。中等务实档：每条 one_liner（悬停）+ full_md（完整解释 + 何时失灵/边界）+ 权威来源 + aliases（另一语言名/同义，双语原生悬停用，全部解析到本 canonical 词条）。纯机制描述，禁投资结论。importer 读 term/one_liner/full_md/sources/version/aliases，其余字段供人工审阅。",
   "terms": [
-    {"term": "ATR", "one_liner": "平均真实波幅：衡量一天「正常」波动多少钱。", "full_md": "ATR(14) 用 Wilder 平滑真实波幅。常用于设定阶梯间距与止损距离，使方案随个股波动自适应。", "sources": ["Wilder"], "version": 1},
-    {"term": "RSI", "one_liner": "相对强弱指数：0–100 的动量温度计。", "full_md": "RSI(14)<30 传统称超卖、>70 超买。仅描述近期涨跌力量对比，不是买卖信号。", "sources": ["Wilder"], "version": 1},
-    {"term": "SMA", "one_liner": "简单移动平均：过去 N 日收盘价算术平均。", "full_md": "SMA50/SMA200 是常用中长期趋势锚点。价格在均线上方/下方是位置描述，不是预测。", "sources": [], "version": 1},
-    {"term": "SMA50", "one_liner": "50 日简单移动平均，中期趋势锚点。", "full_md": "常与 SMA200 对照。金叉/死叉是古老趋势叙述，不构成仓位指令。", "sources": [], "version": 1},
-    {"term": "SMA200", "one_liner": "200 日简单移动平均，长期趋势锚点。", "full_md": "机构与趋势跟随者常用的长期位置参照。", "sources": [], "version": 1},
-    {"term": "布林带", "one_liner": "中轨（SMA）± k 倍标准差的波动通道。", "full_md": "经典参数 20 日、2 倍标准差。触及下轨≈统计偏低区，强趋势可沿轨运行。", "sources": ["Bollinger"], "version": 1},
-    {"term": "VWAP", "one_liner": "成交量加权均价：执行质量基准。", "full_md": "买入均价优于窗口 VWAP 常被视为执行合格。滚动近似可用近 N 日 (P×V)/ΣV。", "sources": [], "version": 1},
-    {"term": "百分位", "one_liner": "某个读数在历史样本中的相对位置。", "full_md": "例如估值处在过去 5 年 80% 分位，表示历史上多数时候更便宜。需同时看样本量 N。", "sources": [], "version": 1},
-    {"term": "隐含波动率", "one_liner": "期权价格反推的市场对未来波动的定价。", "full_md": "IV 高=保险贵。与已实现波动对比可看风险溢价，但不预测方向。", "sources": [], "version": 1},
-    {"term": "IV", "one_liner": "Implied Volatility，隐含波动率。", "full_md": "见「隐含波动率」。", "sources": [], "version": 1},
-    {"term": "EPS", "one_liner": "每股收益：净利润 / 稀释股本。", "full_md": "Forward EPS 为分析师对未来的一致预期，会修正；免费源常缺系统的修正趋势序列。", "sources": [], "version": 1},
-    {"term": "PE", "one_liner": "市盈率：价格 / 每股收益。", "full_md": "可用 trailing 或 forward。高 PE 可表示增长预期或泡沫，必须结合语境，禁止单独下结论。", "sources": [], "version": 1},
-    {"term": "Forward PE", "one_liner": "现价 / 预期未来 EPS。", "full_md": "对增长股更常用，但对 EPS 估计误差敏感。", "sources": [], "version": 1},
-    {"term": "期限结构", "one_liner": "同一标的不同到期/期限上的价格或利率形状。", "full_md": "如 VIX 期限结构、国债收益率曲线。形状变化常比水平更有信息。", "sources": [], "version": 1},
-    {"term": "VIX", "one_liner": "标普500 期权隐含波动率指数，常称「恐慌指数」。", "full_md": "衡量近月期权定价的预期波动，不是股市方向预测器。", "sources": ["CBOE"], "version": 1},
-    {"term": "QQQ", "one_liner": "纳斯达克100 ETF，美股成长/科技常用基准。", "full_md": "Aletheia 相对收益常对 QQQ 计算超额。", "sources": [], "version": 1},
-    {"term": "SOXX", "one_liner": "半导体行业 ETF。", "full_md": "半导体标的行业相对表现常用对照。", "sources": [], "version": 1},
-    {"term": "回撤", "one_liner": "相对前高的跌幅。", "full_md": "如距 52 周高点回撤。描述位置，不预示底部。", "sources": [], "version": 1},
-    {"term": "年化波动率", "one_liner": "日收益标准差 × √252 的年化近似。", "full_md": "衡量近期波动强度，用于仓位与阶梯间距参照。", "sources": [], "version": 1},
-    {"term": "HBM", "one_liner": "高带宽内存，AI 加速器关键配套。", "full_md": "HBM3/HBM4 产能与良率常进入半导体叙事层，需区分事实与影响路径。", "sources": [], "version": 1},
-    {"term": "CoWoS", "one_liner": "台积电先进封装技术路径之一。", "full_md": "产能与交期常被用作 AI 算力供给瓶颈的叙事锚点。", "sources": [], "version": 1},
-    {"term": "Capex", "one_liner": "资本开支：购置长期资产的支出。", "full_md": "云厂与晶圆厂 capex 常被当作需求领先指标，传导链条需显式假设。", "sources": [], "version": 1},
-    {"term": "8-K", "one_liner": "美股重大事件临时报告。", "full_md": "相对定期财报更及时，但仍需阅读原文核对事实。", "sources": ["SEC"], "version": 1},
-    {"term": "超额收益", "one_liner": "相对基准（如 QQQ）的收益差。", "full_md": "Aletheia 复盘用绝对 / vs QQQ / vs 行业 ETF 三基准。", "sources": [], "version": 1},
-    {"term": "置信度", "one_liner": "判断者自我标定的把握程度，∈[0,1]。", "full_md": "用于校准统计：高置信是否更常兑现。不是概率真理。", "sources": [], "version": 1},
-    {"term": "可证伪", "one_liner": "判断必须写清怎样算错。", "full_md": "无证伪条件的表述工具只提示、不替你强化成论点。", "sources": [], "version": 1},
-    {"term": "Append-only", "one_liner": "判断原文不可改，只能追加。", "full_md": "修正=revision/amendment 新行；历史全留，如 git。", "sources": [], "version": 1},
-    {"term": "摘要铁律", "one_liner": "管道摘要只写事实，禁止利好/利空。", "full_md": "影响判断留给 L3 点击触发；guard 拦截影响词。", "sources": [], "version": 1},
-    {"term": "限价单", "one_liner": "指定价格或更优才成交的订单。", "full_md": "执行方案默认用限价，避开市价冲击；下单永远人工。", "sources": [], "version": 1},
-    {"term": "时间止损", "one_liner": "窗口到期仍未成交则按规则收束。", "full_md": "分批目的是压缩方差，不是无限等待更低价。", "sources": [], "version": 1}
+    {
+      "term": "ATR",
+      "category": "技术指标",
+      "one_liner": "平均真实波幅——衡量一只标的近期单日波动的典型幅度。",
+      "full_md": "**完整解释**：ATR(Average True Range)取每日「真实波幅」(今日高低差、今日高与昨收之差、今日低与昨收之差，三者取最大)的 N 日移动平均，常用 N=14。它只量波动的**大小**、不含方向——ATR 升高说明这段时间日内摆动变大，不区分涨跌。本工具用它定阶梯限价单的档距：低波动股(MSFT)ATR 小、档距密；高波动股(MRVL)ATR 大、档距宽。\n\n**何时失灵**：跳空缺口(财报、隔夜消息)会让真实波幅骤然放大，基于历史 ATR 定的档位可能被一次跳空全部跨过；停牌复牌、流动性枯竭时同样失真。",
+      "sources": [
+        "Wilder, J. Welles (1978), New Concepts in Technical Trading Systems"
+      ],
+      "version": 1,
+      "aliases": [
+        "平均真实波幅"
+      ]
+    },
+    {
+      "term": "RSI",
+      "category": "技术指标",
+      "one_liner": "相对强弱指数——把近期涨跌幅压缩到 0–100，读动量强弱。",
+      "full_md": "**完整解释**：RSI(Relative Strength Index)取 N 日(常用14)内平均涨幅与平均跌幅之比，映射到 0–100。传统读法 >70 称「超买」、<30 称「超卖」，但这只是动量分位描述，不是买卖触发——它衡量「涨/跌得多急」，不是「贵/便宜」。\n\n**何时失灵**：强趋势里 RSI 会长期钉在 70 以上或 30 以下(强势股「超买」数月仍续涨)，此时用超买超卖反向操作会持续踩错；低波动横盘期读数在中段来回、无信息量。\n\n**区间与分档**：0–100；<30 超卖、>70 超买、50 为多空动量分水岭（Wilder 传统阈值；强趋势中长期钝化，见上）。",
+      "sources": [
+        "Wilder, J. Welles (1978), New Concepts in Technical Trading Systems"
+      ],
+      "version": 1,
+      "aliases": [
+        "相对强弱指数"
+      ]
+    },
+    {
+      "term": "SMA",
+      "category": "技术指标",
+      "one_liner": "简单移动平均——最近 N 日收盘价的算术平均，平滑价格噪声。",
+      "full_md": "**完整解释**：SMA(Simple Moving Average)把最近 N 日收盘价直接取算术平均，逐日滚动。它是滞后指标——反映的是过去 N 日的平均成本，不预测未来。常与价格位置搭配读：价在均线上方=近期买方占优，下方反之。\n\n**何时失灵**：滞后性使它在拐点处永远慢半拍，剧烈反转时给出的信号已过时；横盘震荡期价格反复穿越均线，产生大量无意义的「金叉死叉」。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "简单移动平均"
+      ]
+    },
+    {
+      "term": "SMA50",
+      "category": "技术指标",
+      "one_liner": "50日简单移动平均——常用的中期趋势参考线。",
+      "full_md": "**完整解释**：过去 50 个交易日收盘价的简单平均，约合两个半月，被广泛当作「中期趋势」的锚。价在 50 日线上方常被描述为中期偏强，下方偏弱；本工具在价位定位中用它做距离度量，纯描述不判断。\n\n**何时失灵**：50 是约定俗成而非有统计特权的数字，换成 45 或 55 结论可能反转(参数敏感)；单一均线无法区分「健康回踩」与「趋势破坏」。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "50日均线"
+      ]
+    },
+    {
+      "term": "SMA200",
+      "category": "技术指标",
+      "one_liner": "200日简单移动平均——常用的长期趋势分界线。",
+      "full_md": "**完整解释**：过去 200 个交易日(约一年)收盘价的简单平均，机构常用作「牛熊分界」的粗略参考。价长期站上 200 日线常被描述为长期趋势向上。它反应极慢，正因如此才少受短期噪声干扰。\n\n**何时失灵**：极度滞后，往往在下跌已深、上涨已久后才确认；把它当买卖信号会系统性买在高位卖在低位。它是趋势的**描述**，不是择时工具。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "200日均线"
+      ]
+    },
+    {
+      "term": "布林带",
+      "category": "技术指标",
+      "one_liner": "以移动平均为中轴、上下各加若干倍标准差的价格通道。",
+      "full_md": "**完整解释**：布林带(Bollinger Bands)中轴为 N 日 SMA(常用20)，上下轨为中轴 ± k 倍标准差(常用 k=2)。带宽随波动放大收缩——「带口收窄」表示近期波动被压缩，「触及上/下轨」表示价格偏离均值较远(约2个标准差)。它描述价格相对自身近期波动的位置。\n\n**何时失灵**：强趋势中价格会「贴着上轨走」很久，把触上轨当超卖会踩错；标准差假设价格近似正态，而实际收益有肥尾，极端行情下轨被轻易击穿。",
+      "sources": [
+        "Bollinger, John (2001), Bollinger on Bollinger Bands"
+      ],
+      "version": 1,
+      "aliases": [
+        "Bollinger Bands"
+      ]
+    },
+    {
+      "term": "MACD",
+      "category": "技术指标",
+      "one_liner": "两条不同周期指数均线之差，读趋势动量的转向。",
+      "full_md": "**完整解释**：MACD(Moving Average Convergence Divergence)=快线EMA(12) − 慢线EMA(26)，再取其9日EMA为信号线，两者之差为柱状图。它衡量短中期动量的相对变化——MACD 上穿信号线常被读作动量转强。本质是均线差，仍是滞后指标。\n\n**何时失灵**：横盘期频繁交叉、假信号密集；因两端都是均线，双重滞后使它在快速反转中反应迟钝；「背离」信号主观且常失效。",
+      "sources": [
+        "Appel, Gerald (2005), Technical Analysis: Power Tools for Active Investors"
+      ],
+      "version": 1,
+      "aliases": [
+        "指数平滑异同移动平均"
+      ]
+    },
+    {
+      "term": "VWAP",
+      "category": "技术指标",
+      "one_liner": "成交量加权平均价——按成交量加权的当日平均成交价。",
+      "full_md": "**完整解释**：VWAP(Volume-Weighted Average Price)= Σ(成交价×成交量) / Σ成交量，通常按当日盘中累计。它代表「市场今天的平均成本」，是机构考核执行质量的基准——买入均价低于 VWAP 视为执行占优。本工具用窗口 VWAP 作执行考核线(实际均价 vs 窗口VWAP)。\n\n**何时失灵**：日内 VWAP 随时间累积、开盘阶段极不稳定；它是执行基准，不含任何估值或方向信息，不能当买卖信号用。",
+      "sources": [
+        "Harris, Larry (2003), Trading and Exchanges: Market Microstructure for Practitioners"
+      ],
+      "version": 1,
+      "aliases": [
+        "成交量加权平均价"
+      ]
+    },
+    {
+      "term": "锚定VWAP",
+      "category": "技术指标",
+      "one_liner": "从某个指定起点(如财报日)累计的VWAP，读特定事件后的平均成本。",
+      "full_md": "**完整解释**：Anchored VWAP 把 VWAP 的起点锚定在一个有意义的时点(财报日、前高、政策日)，从那天起累计成交量加权均价。用于回答「自那件事以来，买入这只票的人平均成本在哪」，从而定位当前价相对该群体的盈亏。\n\n**何时失灵**：锚点选择高度主观，换个起点结论就变；它描述历史成本分布，不预测后续走向。",
+      "sources": [
+        "Harris, Larry (2003), Trading and Exchanges"
+      ],
+      "version": 1,
+      "aliases": [
+        "Anchored VWAP"
+      ]
+    },
+    {
+      "term": "相对成交量",
+      "category": "技术指标",
+      "one_liner": "当日成交量与近期平均成交量之比，衡量关注度异常。",
+      "full_md": "**完整解释**：相对成交量(Relative Volume)= 当日成交量 / 近 N 日平均成交量。>1 表示当天交投比平时活跃，常伴随消息、财报或资金异动。本工具用它做「异常浮出」的触发之一，纯提示不判断方向。\n\n**何时失灵**：放量只说明关注度高，不含方向——利多利空放量看着一样；指数调仓日、期权到期日(四巫日)会造成技术性放量，与基本面无关。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "Relative Volume"
+      ]
+    },
+    {
+      "term": "年化波动率",
+      "category": "波动统计",
+      "one_liner": "把日收益标准差按√252放大到年度尺度的波动度量。",
+      "full_md": "**完整解释**：年化波动率 = 日收益率标准差 × √252(一年约252交易日)。它把不同频率的波动统一到可比的年度尺度，是「这只票一年上下摆动多剧烈」的标准刻画，也是夏普比率、期权定价的输入。\n\n**何时失灵**：√252 的换算假设收益独立同分布，而真实收益有波动率聚集(大波动扎堆)和肥尾，年化会低估极端风险；用历史窗口算出的值只描述过去，波动率本身会突变。",
+      "sources": [
+        "Hull, John C., Options, Futures, and Other Derivatives"
+      ],
+      "version": 1,
+      "aliases": [
+        "Annualized Volatility"
+      ]
+    },
+    {
+      "term": "历史波动率",
+      "category": "波动统计",
+      "one_liner": "由过去实际价格算出的已实现波动率(区别于隐含波动率)。",
+      "full_md": "**完整解释**：历史波动率(Historical / Realized Volatility)用过去一段时间的实际收益率计算标准差，是「已经发生」的波动。它与隐含波动率(市场对未来的预期)对照读：IV 显著高于 HV，说明市场为未来定价了更高的不确定性。\n\n**何时失灵**：完全向后看，对即将发生的事件(财报、政策)零预见；窗口长度选择直接改变数值，短窗口噪声大、长窗口反应钝。",
+      "sources": [
+        "Hull, John C., Options, Futures, and Other Derivatives"
+      ],
+      "version": 1,
+      "aliases": [
+        "Historical Volatility"
+      ]
+    },
+    {
+      "term": "隐含波动率",
+      "category": "波动统计",
+      "one_liner": "从期权价格反推出的市场对未来波动的预期。",
+      "full_md": "**完整解释**：隐含波动率(Implied Volatility, IV)是把期权市场价格代入定价模型(如 Black-Scholes)反解出的波动率，代表市场当前为「未来这段时间会有多大波动」所付的价格。财报、重大事件前 IV 通常抬升，事件落地后常「IV crush」骤降。\n\n**何时失灵**：IV 是模型反推值，模型假设(如正态、恒定波动)不成立时它是「错误模型下的正确数字」；高 IV 只说明预期波动大，不含方向。",
+      "sources": [
+        "Hull, John C., Options, Futures, and Other Derivatives"
+      ],
+      "version": 1,
+      "aliases": [
+        "Implied Volatility",
+        "IV"
+      ]
+    },
+    {
+      "term": "IV百分位",
+      "category": "波动统计",
+      "one_liner": "当前隐含波动率处于过去一年自身分布的位置。",
+      "full_md": "**完整解释**：IV Rank / IV Percentile 把当前 IV 放到该标的过去(常用一年)IV 分布中定位——IV 百分位 80% 表示当前预期波动比过去一年 80% 的时间都高。用于判断「现在的不确定性定价相对它自己是贵是便宜」。\n\n**何时失灵**：只做同一标的的自比较，跨标的不可比；一年窗口若恰好平静(或恰好动荡)，会系统性抬高或压低读数。\n\n**区间**：0–100%（定义域）。高百分位＝当前预期波动相对自身历史偏贵，反之偏便宜。",
+      "sources": [
+        "Natenberg, Sheldon (1994), Option Volatility and Pricing"
+      ],
+      "version": 1,
+      "aliases": [
+        "IV Rank",
+        "IV Percentile"
+      ]
+    },
+    {
+      "term": "Beta",
+      "category": "波动统计",
+      "one_liner": "个股相对基准(如QQQ)的系统性敏感度，β=1即同步波动。",
+      "full_md": "**完整解释**：Beta(β)来自对基准收益的回归斜率，衡量个股随大盘涨跌的放大倍数。β=1.5 意味大盘涨1%该股约涨1.5%(平均意义)。它把收益拆成「市场因子」部分，是本工具异常波动分解和「β误认α」检验的基础。\n\n**何时失灵**：β 由历史回归得出、随窗口和基准变化，不稳定；它只捕捉线性系统性关系，个股特有风险(残差)不在其中；高β在牛市像alpha，实为承担了更多市场风险。\n\n**参照点（无界，但有锚）**：β=1 与市场同步；<1 防御性、>1 进攻性；<0 反向；β=0 与市场无系统关联。",
+      "sources": [
+        "Sharpe, William F. (1964), Capital Asset Prices; Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "贝塔系数"
+      ]
+    },
+    {
+      "term": "相对强弱",
+      "category": "技术指标",
+      "one_liner": "个股相对基准的表现强弱(区别于同名的RSI指标)。",
+      "full_md": "**完整解释**：相对强弱(Relative Strength, 此处指 RS 概念而非 RSI 指标)= 个股收益 / 基准收益的比值走势，或个股与基准的累计收益之差。RS 上行表示该股跑赢基准。本工具的三基准(绝对/相对QQQ/相对行业ETF)正是把相对强弱制度化。\n\n**何时失灵**：跑赢基准不等于绝对赚钱(熊市里少跌也是跑赢)；短窗口相对强弱噪声大，容易把随机波动误读为真实优势。注意勿与 Wilder 的 RSI 指标混淆。",
+      "sources": [
+        "O'Neil, William J. (2009), How to Make Money in Stocks"
+      ],
+      "version": 1,
+      "aliases": [
+        "Relative Strength"
+      ]
+    },
+    {
+      "term": "动量",
+      "category": "技术指标",
+      "one_liner": "价格延续既有方向的倾向，学术上有中期动量效应。",
+      "full_md": "**完整解释**：动量(Momentum)指过去表现好的资产在中期(约3–12个月)倾向继续跑赢，是被广泛记录的市场异象(Jegadeesh & Titman 1993)。学术上作为一个因子存在，与价值因子常呈负相关。\n\n**何时失灵**：动量在拐点处崩溃最惨(「动量崩盘」)，趋势反转时前期赢家跌得最狠；短期动量则更接近噪声，与中期动量效应不是一回事。",
+      "sources": [
+        "Jegadeesh, N. & Titman, S. (1993), Returns to Buying Winners and Selling Losers"
+      ],
+      "version": 1,
+      "aliases": [
+        "Momentum"
+      ]
+    },
+    {
+      "term": "回撤",
+      "category": "波动统计",
+      "one_liner": "价格从某一高点回落的幅度。",
+      "full_md": "**完整解释**：回撤(Drawdown)= (当前价 − 区间高点) / 区间高点，衡量从高点跌下来多少。它刻画持有过程中的账面痛苦程度，是风险的直观度量之一。本工具在价位定位里显示「距高点回撤」，纯描述。\n\n**何时失灵**：回撤只看跌幅、不含时间与恢复能力，同样20%回撤，快速修复与长期阴跌意义天差地别；用哪个高点作参照(历史高/阶段高)会改变数值。",
+      "sources": [
+        "Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Drawdown"
+      ]
+    },
+    {
+      "term": "最大回撤",
+      "category": "波动统计",
+      "one_liner": "一段时期内从峰到谷的最大跌幅，衡量最坏的持有痛苦。",
+      "full_md": "**完整解释**：最大回撤(Maximum Drawdown, MDD)是考察期内任意峰值到其后谷底的最大跌幅百分比。它回答「持有这段时间最惨要承受多大账面亏损」，是风险调整评估的重要一环——本工具用它检验超额收益是否靠承担更高回撤换来。\n\n**何时失灵**：MDD 是单一历史极值，样本外可能被刷新，不是风险上限；它对区间起止敏感，且不反映回撤发生的频率。",
+      "sources": [
+        "Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Maximum Drawdown"
+      ]
+    },
+    {
+      "term": "摆动低点",
+      "category": "技术指标",
+      "one_liner": "价格局部回落形成的短期低点，常作参考支撑。",
+      "full_md": "**完整解释**：摆动低点(Swing Low)是一段走势中被两侧更高价包围的局部低点，常被交易者当作近期供需的参考位。执行计划器把近期摆动低点列为价位锚点之一，用于描述当前价相对近期低点的距离。\n\n**何时失灵**：摆动低点是事后才能确认的形态，识别带主观性；「支撑」被跌破极常见，把它当铁底会低估下行空间。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "Swing Low"
+      ]
+    },
+    {
+      "term": "支撑与阻力",
+      "category": "技术指标",
+      "one_liner": "价格历史上反复止跌(支撑)或止涨(阻力)的区域。",
+      "full_md": "**完整解释**：支撑与阻力(Support / Resistance)指价格历史上多次受阻的价位区，反映过往成交密集区形成的心理与成本记忆。它是对历史行为的描述性标注，本工具仅用于价位定位。\n\n**何时失灵**：本质是自我实现与事后归因的混合，缺乏稳定预测力；重大消息面前技术位形同虚设；同一图上不同人能画出不同的「关键位」。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "Support and Resistance"
+      ]
+    },
+    {
+      "term": "跳空缺口",
+      "category": "技术指标",
+      "one_liner": "开盘价大幅偏离昨收，K线间留下的空白区。",
+      "full_md": "**完整解释**：跳空缺口(Gap)指今日开盘价显著高于/低于昨日收盘，中间无成交，多由隔夜消息(财报、并购、政策)引发。缺口大小是隔夜信息冲击的直观度量，也解释了 ATR 阶梯为何可能被一次跳空跨过。\n\n**何时失灵**：「缺口回补」是常见说法但并无稳定规律，有的缺口长期不补；把缺口当必然的价格目标是过度解读。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "Gap"
+      ]
+    },
+    {
+      "term": "夏普比率",
+      "category": "波动统计",
+      "one_liner": "每单位总波动换来的超额收益，衡量风险调整后回报。",
+      "full_md": "**完整解释**：夏普比率(Sharpe Ratio)=(组合收益 − 无风险利率) / 收益波动率。它回答「为承担的每单位波动，拿到了多少超无风险的回报」，让不同风险水平的策略可比。本工具用它辅助判断超额收益是不是靠更高波动换来的。\n\n**何时失灵**：用波动率作风险，把上行波动也当「风险」惩罚；对肥尾和偏度不敏感，可能给「平时稳、偶尔爆亏」的策略虚高评分；短样本夏普极不稳定。\n\n**经验判读（非硬阈值）**：<1 平庸；1–2 良好；2–3 很好；>3 优异。短样本夏普极不稳定，低频策略慎用单一数值。",
+      "sources": [
+        "Sharpe, William F. (1994), The Sharpe Ratio"
+      ],
+      "version": 1,
+      "aliases": [
+        "Sharpe Ratio"
+      ]
+    },
+    {
+      "term": "EPS",
+      "category": "估值基本面",
+      "one_liner": "每股收益——净利润摊到每股上的金额。",
+      "full_md": "**完整解释**：EPS(Earnings Per Share)= 归属普通股东净利润 / 加权平均流通股数。它是估值(PE)的分母基础，也是市场预期的核心锚点。分「稀释」(计入期权等潜在摊薄)与「基本」两版，科技股常有较大差异。\n\n**何时失灵**：EPS 是会计口径，可被一次性项目、股份回购、非现金费用(如股权激励SBC)扭曲；GAAP 与 non-GAAP EPS 差距在科技股常很大，比较时必须口径一致。",
+      "sources": [
+        "CFA Institute, Financial Reporting and Analysis; Damodaran, A., Investment Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "每股收益"
+      ]
+    },
+    {
+      "term": "PE",
+      "category": "估值基本面",
+      "one_liner": "市盈率——股价除以每股收益，衡量为每元盈利付多少钱。",
+      "full_md": "**完整解释**：PE(Price-to-Earnings)= 股价 / EPS。它把价格用盈利标准化，方便横向(同业)与纵向(自身历史分位)比较。高 PE 通常隐含市场对未来高增长的假设——本工具的「隐含假设翻译」正是把 PE 反推成增长预期。\n\n**何时失灵**：盈利为负或接近零时 PE 失去意义；不同增长与资本结构的公司 PE 不可直接比；用 TTM(过去)还是 Forward(预期)EPS 结论差别很大。",
+      "sources": [
+        "Damodaran, A., Investment Valuation; CFA Institute, Equity Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "市盈率"
+      ]
+    },
+    {
+      "term": "Forward PE",
+      "category": "估值基本面",
+      "one_liner": "用未来12个月预期EPS算的市盈率。",
+      "full_md": "**完整解释**：Forward PE = 股价 / 未来12个月预期 EPS(分析师一致预期)。相比用历史盈利的 TTM PE，它更贴近「为未来盈利付多少」，成长股多看这个。\n\n**何时失灵**：分母是预测，分析师预期系统性偏乐观且会随时下修，Forward PE 因此常「看着便宜」实则建立在待修正的预期上；预期一变，估值锚随之移动。",
+      "sources": [
+        "Damodaran, A., Investment Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "预期市盈率",
+        "前瞻市盈率"
+      ]
+    },
+    {
+      "term": "PEG",
+      "category": "估值基本面",
+      "one_liner": "市盈率除以盈利增速，把估值与成长性挂钩。",
+      "full_md": "**完整解释**：PEG = PE / 盈利增长率(百分数)。用于粗略回答「这个高 PE 是否被高增长支撑」——PEG≈1 常被当作估值与增长匹配的经验参照。它是把成长纳入估值的简便工具。\n\n**何时失灵**：这是经验法则而非理论估值，「PEG=1 合理」缺乏严格依据；增长率取哪一年、用历史还是预期，结果差异巨大；对增长极高或极低的公司失真。",
+      "sources": [
+        "Damodaran, A., Investment Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "市盈率相对盈利增长比率"
+      ]
+    },
+    {
+      "term": "PS",
+      "category": "估值基本面",
+      "one_liner": "市销率——市值除以营收，用于尚未盈利的成长股。",
+      "full_md": "**完整解释**：PS(Price-to-Sales)= 市值 / 营收。当公司盈利为负、PE 失效时常改用 PS 估值，尤其早期高增长软件股。它假设未来能把营收转化为利润。\n\n**何时失灵**：完全忽略盈利能力与成本结构，10%净利率和亏损公司可能给出相近 PS 却价值悬殊；只在同类商业模式内横比才有意义。",
+      "sources": [
+        "Damodaran, A., Investment Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "市销率"
+      ]
+    },
+    {
+      "term": "EV/EBITDA",
+      "category": "估值基本面",
+      "one_liner": "企业价值除以息税折旧摊销前利润，剔除资本结构差异的估值。",
+      "full_md": "**完整解释**：EV/EBITDA 用企业价值(市值+净负债)比 EBITDA。相比 PE，它把负债与现金、折旧摊销和税差都剥离，便于比较资本结构不同的公司，并购与重资产行业常用。\n\n**何时失灵**：EBITDA 忽略真实的资本开支与折旧，对重资产或高 Capex 公司(如晶圆厂)会美化盈利能力；被批评为「假装折旧不是真实成本」。",
+      "sources": [
+        "Damodaran, A., Investment Valuation; CFA Institute, Equity Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "企业价值倍数"
+      ]
+    },
+    {
+      "term": "自由现金流",
+      "category": "估值基本面",
+      "one_liner": "经营现金流减去资本开支，公司可自由支配的现金。",
+      "full_md": "**完整解释**：自由现金流(Free Cash Flow, FCF)= 经营活动现金流 − 资本开支。它衡量公司在维持运营与投资后真正剩下、可用于分红/回购/还债的现金，比会计利润更难被非现金项目粉饰，是 DCF 估值的核心输入。\n\n**何时失灵**：FCF 波动大，重投资期(如AI Capex高峰)可能为负却不代表经营恶化；企业可通过压缩必要资本开支或延迟付款短期美化 FCF。",
+      "sources": [
+        "Damodaran, A., Investment Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "Free Cash Flow",
+        "FCF"
+      ]
+    },
+    {
+      "term": "毛利率",
+      "category": "估值基本面",
+      "one_liner": "毛利占营收的比例，反映产品本身的赚钱能力。",
+      "full_md": "**完整解释**：毛利率(Gross Margin)=(营收 − 营业成本) / 营收。它剥离销售、研发、管理费用，只看产品/服务本身的盈利空间，是护城河与定价权的直接体现——软件毛利常达 70–90%，硬件则低得多。\n\n**何时失灵**：不同行业毛利结构天差地别，跨行业比较无意义；营业成本的会计归类(哪些计入COGS)在公司间不完全一致，可影响可比性。",
+      "sources": [
+        "CFA Institute, Financial Reporting and Analysis"
+      ],
+      "version": 1,
+      "aliases": [
+        "Gross Margin"
+      ]
+    },
+    {
+      "term": "营业利润率",
+      "category": "估值基本面",
+      "one_liner": "营业利润占营收的比例，反映主营业务整体盈利效率。",
+      "full_md": "**完整解释**：营业利润率(Operating Margin)= 营业利润 / 营收，在毛利基础上再扣除研发、销售、管理等运营费用，衡量核心业务把营收转成利润的效率。它比毛利率更完整地反映经营杠杆——营收增长时费用摊薄，利润率常扩张。\n\n**何时失灵**：受一次性费用、重组、股权激励口径影响；高研发投入期(为未来增长)会压低当期利润率，不代表经营变差。",
+      "sources": [
+        "CFA Institute, Financial Reporting and Analysis"
+      ],
+      "version": 1,
+      "aliases": [
+        "Operating Margin"
+      ]
+    },
+    {
+      "term": "营收增长率",
+      "category": "估值基本面",
+      "one_liner": "营收相对上期的增速，成长股估值的核心变量。",
+      "full_md": "**完整解释**：营收增长率(Revenue Growth)衡量销售规模的扩张速度，常看同比(YoY)。对成长股而言它是估值倍数的主要支撑——市场愿为高增长付高 PS/PE。增速的加速或减速(二阶变化)往往比绝对值更牵动股价。\n\n**何时失灵**：高基数下增速自然放缓不等于变差；并购、汇率、一次性大单会制造失真的高增长；只看营收不看是否盈利可能踩坑。",
+      "sources": [
+        "Damodaran, A., Investment Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "Revenue Growth"
+      ]
+    },
+    {
+      "term": "市值",
+      "category": "估值基本面",
+      "one_liner": "股价乘以流通股数，公司股权的总市场价格。",
+      "full_md": "**完整解释**：市值(Market Capitalization)= 股价 × 流通股数，是市场对公司股权整体的定价，也是指数权重、规模分类(大/中/小盘)的基础。与企业价值(EV)区别在于市值不含负债与现金。\n\n**何时失灵**：市值只算股权，比较负债水平不同的公司应改用 EV；流通股口径(是否含未行权期权)会影响精确值。",
+      "sources": [
+        "Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Market Cap"
+      ]
+    },
+    {
+      "term": "分析师评级",
+      "category": "估值基本面",
+      "one_liner": "卖方分析师给出的买入/持有/卖出等级汇总。",
+      "full_md": "**完整解释**：分析师评级(Analyst Rating)是卖方投行对个股的买入/增持/中性/减持/卖出标签，常汇总为一致评级分布。本工具在基本面板块展示评级分布作背景信息，不作为动作依据。\n\n**何时失灵**：评级存在结构性乐观偏差(「卖出」评级极少)；分析师有利益关联(投行业务、talk their book)；评级变动往往滞后于股价，追评级易高买低卖。",
+      "sources": [
+        "CFA Institute, Standards of Practice; Womack, K. (1996), Do Brokerage Analysts' Recommendations Have Investment Value?"
+      ],
+      "version": 1,
+      "aliases": [
+        "Analyst Rating"
+      ]
+    },
+    {
+      "term": "目标价",
+      "category": "估值基本面",
+      "one_liner": "分析师给出的未来价格预测(仅作背景，非本工具输出)。",
+      "full_md": "**完整解释**：目标价(Price Target)是分析师基于其估值模型给出的12个月价格预测。本工具**自身不生产目标价**(禁投资结论)，仅在展示卖方观点时作为第三方信息呈现，并标注其预测性质。\n\n**何时失灵**：目标价对模型假设极度敏感、事后准确率低且系统性偏乐观；常在股价已动后被动调整，参考价值有限。切记这是别人的预测，不是本工具的判断。",
+      "sources": [
+        "Bradshaw, M. (2011), Analysts' Forecasts: What Do We Know?"
+      ],
+      "version": 1,
+      "aliases": [
+        "Price Target"
+      ]
+    },
+    {
+      "term": "盈利预期修正",
+      "category": "估值基本面",
+      "one_liner": "分析师上调或下调未来EPS预期的方向与趋势。",
+      "full_md": "**完整解释**：盈利预期修正(EPS Revision)追踪分析师一致预期随时间被上调还是下调。修正方向常比绝对水平更有信息量——持续上修反映基本面预期改善。注意：**本工具 v1 明确标注开源数据源不提供修正趋势**，只能用预估快照+财报要点诚实替代。\n\n**何时失灵**：修正本身滞后于实际经营变化；财报后集中修正会造成阶段性噪声；开源数据缺失时切勿用单点预估伪装成趋势。",
+      "sources": [
+        "CFA Institute, Equity Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "EPS Revision"
+      ]
+    },
+    {
+      "term": "一致预期",
+      "category": "估值基本面",
+      "one_liner": "多家分析师预测的平均值，市场的隐含基准。",
+      "full_md": "**完整解释**：一致预期(Consensus Estimate)是覆盖某股的分析师对营收/EPS 等的预测均值(或中位数)。财报「超预期/不及预期」正是与它对照——股价常对「相对一致预期的差异」而非绝对数字反应(预期差交易)。\n\n**何时失灵**：一致预期会被公司引导(guidance)与「低设门槛」操纵，超预期可能只是预期被压低；覆盖分析师少时均值不稳定。",
+      "sources": [
+        "CFA Institute, Equity Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "Consensus Estimate"
+      ]
+    },
+    {
+      "term": "反向估值",
+      "category": "估值基本面",
+      "one_liner": "从当前股价反推市场隐含的增长假设，而非正向预测价格。",
+      "full_md": "**完整解释**：反向估值(Reverse DCF)不预测目标价，而是把当前股价代入估值模型，反解出「要撑起这个价格，市场隐含假设了多高的增长/利润率/期限」。它把估值转成可检验的假设陈述，是本工具的后期模块(§7)。\n\n**何时失灵**：结果完全依赖所选模型与固定的其他参数，改折现率或期限，隐含增长就变；它揭示的是「市场假设了什么」，不代表这些假设正确或错误。",
+      "sources": [
+        "Mauboussin, M. & Rappaport, A. (2021), Expectations Investing"
+      ],
+      "version": 1,
+      "aliases": [
+        "Reverse DCF"
+      ]
+    },
+    {
+      "term": "DCF",
+      "category": "估值基本面",
+      "one_liner": "现金流折现——把未来自由现金流按折现率折回现值来估值。",
+      "full_md": "**完整解释**：DCF(Discounted Cash Flow)预测未来自由现金流，用反映风险的折现率(常用WACC)折回现值求和，得内在价值。它是估值理论的基石，把「一家公司值多少」还原为「未来能产多少现金、这些现金今天值多少」。\n\n**何时失灵**：对折现率和永续增长率极度敏感(「垃圾进垃圾出」)，微小假设差异导致估值天差地别；远期现金流预测本质是猜测；高增长未盈利公司几乎全部价值压在终值上，不确定性最大。",
+      "sources": [
+        "Damodaran, A., Investment Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "现金流折现",
+        "现金流量折现"
+      ]
+    },
+    {
+      "term": "同比环比",
+      "category": "估值基本面",
+      "one_liner": "YoY同比(对去年同期)与QoQ环比(对上季)两种增长口径。",
+      "full_md": "**完整解释**：同比(YoY, Year-over-Year)对比去年同一期，剔除季节性；环比(QoQ, Quarter-over-Quarter)对比上一季，捕捉最新动能。两者搭配读：YoY 看趋势、QoQ 看拐点。有强季节性的业务(如消费电子)必须看同比。\n\n**何时失灵**：环比受季节性严重干扰，不去季调直接比会误导；同比在基数异常(去年同期暴涨或暴跌)时失真。",
+      "sources": [
+        "CFA Institute, Financial Reporting and Analysis"
+      ],
+      "version": 1,
+      "aliases": [
+        "YoY",
+        "QoQ"
+      ]
+    },
+    {
+      "term": "VIX",
+      "category": "市场风险状态",
+      "one_liner": "标普500未来30天预期波动率，俗称「恐慌指数」；常态约15–20，>30 为恐慌区。",
+      "full_md": "**完整解释**：VIX 由 CBOE 用标普500期权价格加权算出，代表市场对未来30天年化波动的预期。它是「风险的价格」——恐慌时飙升、平静时低迷，与股指多呈负相关。本工具在市场风险状态层用它作情绪与不确定性读数。\n\n**何时失灵**：VIX 反映的是当下预期而非预测，低 VIX 不代表安全(常在崩盘前处于低位「波动率黑洞」)；它只测波动幅度不含方向；期货化的 VIX 产品受期限结构侵蚀，不等于现货 VIX。\n\n**区间与分档（经验，非官方）**：<15 低波动/市场自满；15–20 常态；20–30 波动升高；30–40 恐慌；>40 极度恐慌。无理论上限，历史峰值 2008≈80、2020≈82。注意：VIX 测的是波动幅度，**不是**「贪婪/恐惧」情绪刻度——那是另一指数 Fear & Greed Index。",
+      "sources": [
+        "CBOE, VIX White Paper (2019); Whaley, R. (2009), Understanding VIX"
+      ],
+      "version": 1,
+      "aliases": [
+        "波动率指数",
+        "恐慌指数"
+      ]
+    },
+    {
+      "term": "Fear & Greed Index",
+      "category": "市场风险状态",
+      "one_liner": "恐惧与贪婪指数——CNN 综合7个指标的市场情绪读数，0–100，越高越贪婪。",
+      "full_md": "**完整解释**：CNN Fear & Greed Index 把7个市场指标（价格动量、股价强度、股价宽度、Put/Call 比率、垃圾债需求、市场波动率VIX、避险需求）合成一个 0–100 的情绪刻度，回答「市场当前被恐惧还是贪婪驱动」。\n\n**区间与分档（CNN 官方）**：0–25 极度恐惧；25–45 恐惧；45–55 中性；55–75 贪婪；75–100 极度贪婪。常作反向情绪参考——极度恐惧常近阶段底、极度贪婪常近阶段顶（仅统计倾向，非择时信号）。\n\n**何时失灵**：它是**专有复合指数**——按本工具原则（只用可第三方交叉验证的经典指标、综合标签后置），它是被审慎对待的合成标签而非一手信号；成分与权重由 CNN 定义、透明度有限；情绪极值可长期维持不反转。区别于 VIX：VIX 只测波动幅度，本指数测情绪方向。",
+      "sources": [
+        "CNN Business, Fear & Greed Index Methodology"
+      ],
+      "version": 1,
+      "aliases": [
+        "恐惧与贪婪指数",
+        "恐慌贪婪指数"
+      ]
+    },
+    {
+      "term": "期限结构",
+      "category": "市场风险状态",
+      "one_liner": "同一品种不同到期的价格/收益率曲线形状。",
+      "full_md": "**完整解释**：期限结构(Term Structure)指同一标的(利率、VIX期货、原油等)在不同到期月份上的价格排列。曲线向上(远月高)称 contango，向下(远月低)称 backwardation。VIX 期限结构由升转贴常被读作短期恐慌骤升的信号。\n\n**何时失灵**：形状反映当前市场定价与持有成本的合成，不是对未来的准确预测；不同品种期限结构的成因不同(利率 vs 波动率)，不可套用同一解读。",
+      "sources": [
+        "Hull, John C., Options, Futures, and Other Derivatives"
+      ],
+      "version": 1,
+      "aliases": [
+        "Term Structure"
+      ]
+    },
+    {
+      "term": "Contango",
+      "category": "市场风险状态",
+      "one_liner": "期货远月价高于近月/现货，期限结构向上。",
+      "full_md": "**完整解释**：Contango(升水)指远期合约价格高于近期或现货，曲线向上倾斜，常见于有持有成本(仓储、资金)的市场。对滚动持有期货多头意味着「越滚越贵」的负 carry(展期损耗)。VIX 平静期通常处于 contango。\n\n**何时失灵**：contango 本身不预示价格方向，只描述曲线形状；把「VIX 在 contango」直接读成方向性信号是过度推断。",
+      "sources": [
+        "Hull, John C., Options, Futures, and Other Derivatives"
+      ],
+      "version": 1,
+      "aliases": [
+        "期货升水",
+        "升水"
+      ]
+    },
+    {
+      "term": "Backwardation",
+      "category": "市场风险状态",
+      "one_liner": "期货近月/现货价高于远月，期限结构向下。",
+      "full_md": "**完整解释**：Backwardation(贴水)指近期或现货价格高于远期，曲线向下。VIX 由 contango 翻转为 backwardation 通常出现在市场急跌、短期避险需求骤升时，被当作压力读数之一。\n\n**何时失灵**：贴水描述当下供需/恐慌，不预测何时缓解；单看一天的结构翻转易被噪声误导，需结合水平与持续性。",
+      "sources": [
+        "Hull, John C., Options, Futures, and Other Derivatives"
+      ],
+      "version": 1,
+      "aliases": [
+        "期货贴水",
+        "贴水"
+      ]
+    },
+    {
+      "term": "HY OAS",
+      "category": "市场风险状态",
+      "one_liner": "高收益债期权调整利差，衡量信用市场的风险定价。",
+      "full_md": "**完整解释**：HY OAS(High-Yield Option-Adjusted Spread)是高收益(垃圾级)公司债相对无风险国债的利差，剔除内嵌期权影响。它是信用环境的温度计——利差走阔=市场要求更高风险补偿、金融条件收紧，常先于股市压力显现。\n\n**何时失灵**：利差受流动性与技术性供需影响，不纯是违约预期；极低利差可能反映的是「无差别追逐收益」的自满而非真实安全。",
+      "sources": [
+        "Federal Reserve Bank of St. Louis (FRED); Fabozzi, F., Bond Markets, Analysis, and Strategies"
+      ],
+      "version": 1,
+      "aliases": [
+        "高收益债利差"
+      ]
+    },
+    {
+      "term": "信用利差",
+      "category": "市场风险状态",
+      "one_liner": "公司债相对同期国债的收益率之差，反映违约与流动性补偿。",
+      "full_md": "**完整解释**：信用利差(Credit Spread)= 公司债收益率 − 同期限国债收益率，是投资者为承担违约与流动性风险要求的额外回报。利差扩大代表风险偏好下降、融资变贵；作为宏观风险层读数，它常比股市更早反映系统性压力。\n\n**何时失灵**：利差既含违约预期也含流动性溢价，两者难分离；不同评级、行业利差不可直接比；技术性资金流(如ETF申赎)会短期扭曲。",
+      "sources": [
+        "Fabozzi, F., Bond Markets, Analysis, and Strategies"
+      ],
+      "version": 1,
+      "aliases": [
+        "Credit Spread"
+      ]
+    },
+    {
+      "term": "市场宽度",
+      "category": "市场风险状态",
+      "one_liner": "上涨股票的广度，衡量涨势由多少成分股参与。",
+      "full_md": "**完整解释**：市场宽度(Market Breadth)用上涨/下跌家数、创新高家数、站上均线比例等衡量涨跌的参与广度。指数由少数权重股拉动(宽度差)与普涨(宽度好)风险含义不同——窄幅上涨常被视为脆弱信号。\n\n**何时失灵**：宽度指标众多且常互相矛盾，选择哪个口径影响结论；大盘由超大市值主导的时代(如Mag7)，宽度与指数长期背离可以持续很久，不必然立即修正。",
+      "sources": [
+        "Murphy, John J. (1999), Technical Analysis of the Financial Markets"
+      ],
+      "version": 1,
+      "aliases": [
+        "Market Breadth"
+      ]
+    },
+    {
+      "term": "Put/Call比率",
+      "category": "市场风险状态",
+      "one_liner": "看跌与看涨期权成交量之比，衡量短期情绪与对冲需求。",
+      "full_md": "**完整解释**：Put/Call Ratio = 看跌期权成交量 / 看涨期权成交量。高比率表示避险/看跌情绪浓，常被当作反向情绪指标(极端恐慌处往往接近底部)。本工具用作短期情绪仓位的读数之一。\n\n**何时失灵**：期权成交含大量对冲与做市而非方向性押注，比率的情绪解读常被污染；不同来源(指数vs个股、全市场vs特定标的)口径差异大；反向解读只在极端值附近略有统计意义。\n\n**粗略分档（口径依来源，谨慎）**：>1 看跌/避险情绪偏浓；约 0.7–1 中性；<0.7 偏自满。仅在极端值附近有反向参考意义。",
+      "sources": [
+        "CBOE; Bandopadhyaya & Jones (2008), Measures of Investor Sentiment"
+      ],
+      "version": 1,
+      "aliases": [
+        "Put/Call Ratio"
+      ]
+    },
+    {
+      "term": "10年期美债收益率",
+      "category": "市场风险状态",
+      "one_liner": "美国10年国债收益率，长端利率与估值折现的锚。",
+      "full_md": "**完整解释**：10年期美债收益率(10Y Treasury Yield)是全球资产定价的基准长端利率，反映增长与通胀预期。它是估值折现率的核心成分——利率上行压制长久期资产(高增长科技股)估值。本工具作可选宏观读数。\n\n**何时失灵**：收益率变动的驱动(增长预期 vs 通胀预期 vs 期限溢价)决定其对股市含义，不能只看涨跌方向；短期与股市的相关性并不稳定，时正时负。",
+      "sources": [
+        "Federal Reserve (FRED); Ilmanen, A. (2011), Expected Returns"
+      ],
+      "version": 1,
+      "aliases": [
+        "10Y Treasury Yield"
+      ]
+    },
+    {
+      "term": "收益率曲线",
+      "category": "市场风险状态",
+      "one_liner": "不同期限国债收益率连成的曲线，倒挂常被视为衰退信号。",
+      "full_md": "**完整解释**：收益率曲线(Yield Curve)描绘各期限国债收益率。正常向上倾斜；当短端高于长端(如2Y>10Y)称「倒挂」，历史上多次先于经济衰退出现，被广泛当作宏观警示。\n\n**何时失灵**：倒挂到衰退的时滞长且不定(可达一两年)，作为择时工具几乎无用；量化宽松等政策扭曲了长端，历史规律的外推可靠性下降。",
+      "sources": [
+        "Estrella & Mishkin (1996), The Yield Curve as a Predictor of U.S. Recessions"
+      ],
+      "version": 1,
+      "aliases": [
+        "Yield Curve"
+      ]
+    },
+    {
+      "term": "DXY",
+      "category": "市场风险状态",
+      "one_liner": "美元指数——美元对一篮子主要货币的汇率强弱。",
+      "full_md": "**完整解释**：DXY(美元指数)衡量美元对欧元、日元、英镑等一篮子货币的加权汇率。强美元通常收紧全球金融条件、压制海外营收占比高的美股科技公司折算收益，是可选宏观读数。\n\n**何时失灵**：DXY 权重高度偏欧元，不能代表美元对所有货币(尤其新兴市场)的走势；与股市关系随宏观 regime 变化，不是稳定的单向影响。",
+      "sources": [
+        "Federal Reserve (FRED); ICE, U.S. Dollar Index Methodology"
+      ],
+      "version": 1,
+      "aliases": [
+        "美元指数"
+      ]
+    },
+    {
+      "term": "FOMC",
+      "category": "市场风险状态",
+      "one_liner": "美联储联邦公开市场委员会，决定基准利率的议息会议。",
+      "full_md": "**完整解释**：FOMC(Federal Open Market Committee)是美联储制定货币政策(设定联邦基金利率目标、量化政策)的委员会，每年约8次会议。会议决议、点阵图与主席发布会是重大市场事件——执行计划器把 FOMC 列入事件冲突检查，建议绕开或留份额在会后。\n\n**边界**：这是日程/机制性词条，非指标。要点在于它是可预知的高波动时点，纪律上应规避而非预测其结果。",
+      "sources": [
+        "Federal Reserve, About the FOMC"
+      ],
+      "version": 1,
+      "aliases": [
+        "联邦公开市场委员会"
+      ]
+    },
+    {
+      "term": "CPI",
+      "category": "市场风险状态",
+      "one_liner": "消费者物价指数，衡量通胀的核心月度数据。",
+      "full_md": "**完整解释**：CPI(Consumer Price Index)由美国劳工统计局按月发布，衡量一篮子消费品与服务的价格变化，是通胀的关键读数，直接影响利率预期与市场波动。核心 CPI 剔除食品与能源以看趋势。发布日属高波动事件，纳入执行计划的事件冲突检查。\n\n**何时失灵**：CPI 是滞后与篮子加权的合成指标，与个人真实通胀感受可能背离；市场反应取决于「相对预期的差」，而非绝对数值。",
+      "sources": [
+        "U.S. Bureau of Labor Statistics, CPI Handbook of Methods"
+      ],
+      "version": 1,
+      "aliases": [
+        "消费者物价指数"
+      ]
+    },
+    {
+      "term": "联邦基金利率",
+      "category": "市场风险状态",
+      "one_liner": "美联储的政策利率，货币宽松/紧缩的直接刻度。",
+      "full_md": "**完整解释**：联邦基金利率(Fed Funds Rate)是银行间隔夜拆借利率，美联储通过设定目标区间实施货币政策。它是无风险利率链条的起点，向上传导至各类资产折现率——加息周期整体压制成长股估值。\n\n**何时失灵**：政策利率是短端，长端与实体融资成本还受预期与期限溢价影响，不是一动全动；市场往往已提前对利率路径定价，「靴子落地」时反应可能与直觉相反。",
+      "sources": [
+        "Federal Reserve, Monetary Policy Principles and Practice"
+      ],
+      "version": 1,
+      "aliases": [
+        "Fed Funds Rate"
+      ]
+    },
+    {
+      "term": "实际利率",
+      "category": "市场风险状态",
+      "one_liner": "名义利率减去通胀，反映真实的资金成本。",
+      "full_md": "**完整解释**：实际利率(Real Rate)= 名义利率 − 通胀(预期)，可由抗通胀债券(TIPS)收益率近似观察。它是长久期资产估值的深层驱动——实际利率上行对无盈利/远期现金流为主的成长股压制尤重。\n\n**何时失灵**：实际利率依赖通胀预期的度量，而预期本身不可直接观测、口径多样；短期股价对它的敏感度随 regime 变化。",
+      "sources": [
+        "Ilmanen, A. (2011), Expected Returns"
+      ],
+      "version": 1,
+      "aliases": [
+        "Real Rate"
+      ]
+    },
+    {
+      "term": "风险溢价",
+      "category": "市场风险状态",
+      "one_liner": "承担风险资产相对无风险资产要求的额外预期回报。",
+      "full_md": "**完整解释**：风险溢价(Risk Premium)，股票语境下即股权风险溢价(ERP)= 股票预期回报 − 无风险利率，是投资者为承担股市风险索要的补偿。溢价压缩(资产变贵)常反映风险偏好高涨，走阔反映避险。它是三种反对里「市场定价反对」的度量维度之一。\n\n**何时失灵**：ERP 无法直接观测，只能由模型估计，不同方法结果差异大；它是长期均值回归概念，对短期择时几乎无用。",
+      "sources": [
+        "Damodaran, A. (annual), Equity Risk Premiums; Ilmanen, A. (2011), Expected Returns"
+      ],
+      "version": 1,
+      "aliases": [
+        "Risk Premium",
+        "ERP"
+      ]
+    },
+    {
+      "term": "百分位",
+      "category": "波动统计",
+      "one_liner": "当前值在历史分布中的相对位置(0–100%)。",
+      "full_md": "**完整解释**：百分位(Percentile)把当前读数放到历史样本分布中定位——「PE 处于5年90%分位」表示比过去5年90%的时间都高。本工具广泛用它把绝对数字转成「相对自身历史是高是低」的可读语境。\n\n**何时失灵**：结论完全取决于所选历史窗口，窗口起止不同分位可反转；分布若本身在结构性上移(如利率中枢改变)，旧分位失去参照意义；不预示均值回归的时间。\n\n**区间**：0–100%（定义域）。常见惯例 ≥80% 称偏高、≤20% 称偏低，但完全取决于所选历史窗口。",
+      "sources": [
+        "标准统计学; CFA Institute, Quantitative Methods"
+      ],
+      "version": 1,
+      "aliases": [
+        "Percentile"
+      ]
+    },
+    {
+      "term": "Z-score",
+      "category": "波动统计",
+      "one_liner": "某值偏离均值多少个标准差的标准化度量。",
+      "full_md": "**完整解释**：Z-score =(当前值 − 均值) / 标准差，把不同量纲的指标统一到「偏离常态几个标准差」的可比刻度，用于识别异常值与做跨指标对比。\n\n**何时失灵**：假设分布近似正态，金融数据肥尾使「3个标准差」事件远比正态预测频繁；均值与标准差由历史窗口估计，非平稳时 Z-score 失真。",
+      "sources": [
+        "标准统计学; CFA Institute, Quantitative Methods"
+      ],
+      "version": 1,
+      "aliases": [
+        "标准分"
+      ]
+    },
+    {
+      "term": "标准差",
+      "category": "波动统计",
+      "one_liner": "衡量数据围绕均值离散程度的统计量，波动率的基础。",
+      "full_md": "**完整解释**：标准差(Standard Deviation)度量一组数据偏离均值的平均离散程度，在金融里是波动率的数学基础(收益率标准差=波动率)。它把「波动大小」量化，进而支撑夏普比率、布林带、Z-score 等。\n\n**何时失灵**：把上行与下行波动对称对待，不区分「好波动」与「坏波动」；对肥尾与偏态不敏感，会低估极端风险。",
+      "sources": [
+        "标准统计学; Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Standard Deviation"
+      ]
+    },
+    {
+      "term": "相关性",
+      "category": "波动统计",
+      "one_liner": "两资产同向变动的强度(−1到+1)，分散化的基础。",
+      "full_md": "**完整解释**：相关性(Correlation)衡量两资产收益共同变动的线性强度，+1完全同向、−1完全反向、0无线性关系。它是分散化与因子分解的核心——低相关资产组合能降低整体波动。使用者「有效独立赌注约1.5–2个」正是相关性视角的判断。\n\n**何时失灵**：只捕捉线性关系，忽略非线性依赖；相关性不稳定，危机中「一切相关性趋近1」(分散化恰在最需要时失效)；相关不等于因果。\n\n**区间**：−1 ~ +1（定义域）。经验：|r|>0.7 常称强相关、0.3–0.7 中等、<0.3 弱；符号表方向。",
+      "sources": [
+        "标准统计学; Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Correlation"
+      ]
+    },
+    {
+      "term": "因子分解",
+      "category": "波动统计",
+      "one_liner": "把个股收益拆成市场、行业等共同因子加特有残差。",
+      "full_md": "**完整解释**：因子分解(Factor Decomposition)用回归把个股收益拆成若干共同因子(如市场、行业)的贡献加上无法解释的残差。本工具的异常波动分解正是此法——AMAT/MRVL 用 QQQ+SOXX，MSFT 用 QQQ+大型科技，分出「市场因子+行业因子+剩余异常」。\n\n**何时失灵**：残差只是统计上无法被所选因子解释的部分，**不等于因果归因**；因子选择与窗口决定分解结果；共线性(如QQQ与SOXX高度相关)会让系数不稳。",
+      "sources": [
+        "Sharpe, W. (1964); Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Factor Decomposition"
+      ]
+    },
+    {
+      "term": "残差",
+      "category": "波动统计",
+      "one_liner": "回归模型无法解释的部分，即剩余异常收益。",
+      "full_md": "**完整解释**：残差(Residual)是实际值减去模型拟合值的差。在异常波动分解里，扣除市场与行业因子后剩下的个股特有变动即残差，提示「有超出大盘与行业的事在发生」，是进一步调查的线索。\n\n**何时失灵**：残差是统计异常，**本工具明确规定不称因果归因**；它可能只是噪声或遗漏因子所致；把大残差直接解读为「利好/利空兑现」是越界。",
+      "sources": [
+        "标准计量经济学; Wooldridge, Introductory Econometrics"
+      ],
+      "version": 1,
+      "aliases": [
+        "Residual"
+      ]
+    },
+    {
+      "term": "样本量",
+      "category": "波动统计",
+      "one_liner": "参与统计的观测个数，决定结论的可信程度。",
+      "full_md": "**完整解释**：样本量(Sample Size, N)是统计推断的可信度基础——N 越小，结论越可能是运气而非规律。本工具**永久显示样本量，N<20 标注「统计意义有限，仅作定性参考」**，正是为对抗用少数几笔交易伪装成「验证了优势」的认知陷阱。\n\n**边界**：这是纪律性约束而非可调指标。低频交易者攒够样本需数年，这正是工具为长时间尺度设计的原因。切勿用小样本反复矫正策略(过度拟合)。",
+      "sources": [
+        "标准统计学; Kahneman, D. (2011), Thinking, Fast and Slow(小数定律)"
+      ],
+      "version": 1,
+      "aliases": [
+        "Sample Size"
+      ]
+    },
+    {
+      "term": "超额收益",
+      "category": "波动统计",
+      "one_liner": "相对基准多出的收益，需区分是alpha还是承担了更多风险。",
+      "full_md": "**完整解释**：超额收益(Excess Return / Alpha)指跑赢基准的部分。真正的 alpha 是风险调整后仍存在的超额，区别于单纯靠高 beta 在牛市放大的收益。本工具三基准+风险调整的设计，核心就是检验超额是真本事还是「β误认α」。\n\n**何时失灵**：短样本的超额几乎全是噪声与运气；不做风险调整的「跑赢」在牛市毫无意义；幸存者偏差与事后挑样本会系统性高估 alpha。",
+      "sources": [
+        "Jensen, M. (1968), The Performance of Mutual Funds; Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Excess Return",
+        "Alpha"
+      ]
+    },
+    {
+      "term": "相对基准",
+      "category": "波动统计",
+      "one_liner": "以指数(QQQ/行业ETF)为参照系考核表现，而非只看绝对涨跌。",
+      "full_md": "**完整解释**：相对基准(Benchmark-Relative)评估把个股/组合收益减去基准收益，回答「相对市场我是强是弱」。本工具的三基准(绝对收益、相对QQQ、相对行业ETF)制度化了这一视角，防止在普涨行情里把 beta 误当能力。\n\n**何时失灵**：基准选择决定结论(拿错行业ETF会误判)；相对强弱在熊市可能「少亏也算赢」，与绝对目标脱节；需与绝对收益、风险调整合看。",
+      "sources": [
+        "Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Benchmark-Relative"
+      ]
+    },
+    {
+      "term": "HBM",
+      "category": "AI叙事供应链",
+      "one_liner": "高带宽内存——AI加速器旁堆叠的高速内存，供给紧俏环节。",
+      "full_md": "**完整解释**：HBM(High Bandwidth Memory)是通过硅通孔(TSV)垂直堆叠、紧贴 GPU/加速器的高带宽 DRAM，为 AI 训练/推理喂数据，是当前 AI 算力链的关键瓶颈之一。主要供应商为 SK 海力士、三星、美光。本工具在主题层的存储细分环节追踪它。\n\n**边界**：这是产业术语，理解要点在链条细分——HBM 紧俏不等于「整条存储链受益」，须区分 HBM 与传统 DRAM/NAND 的不同周期。避免「AI Capex↑=全链受益」式推论。",
+      "sources": [
+        "JEDEC HBM 标准; SEMI 行业资料; SK hynix / Micron 技术文档"
+      ],
+      "version": 1,
+      "aliases": [
+        "高带宽内存"
+      ]
+    },
+    {
+      "term": "CoWoS",
+      "category": "AI叙事供应链",
+      "one_liner": "台积电的先进封装技术，AI芯片产能的关键卡口。",
+      "full_md": "**完整解释**：CoWoS(Chip-on-Wafer-on-Substrate)是台积电的2.5D先进封装，把 GPU 芯粒与 HBM 集成在硅中介层上。它是高端 AI 芯片(如 NVIDIA 数据中心 GPU)的产能瓶颈，CoWoS 扩产节奏直接约束 AI 算力供给。本工具在先进封装环节追踪。\n\n**边界**：产业术语，重点在它是**产能约束点**——理解「谁卡了谁」比记住定义重要；产能指引变化是真实事件，而市场情绪对它的外推常过度。",
+      "sources": [
+        "TSMC 技术文档; SEMI 行业资料"
+      ],
+      "version": 1,
+      "aliases": []
+    },
+    {
+      "term": "先进封装",
+      "category": "AI叙事供应链",
+      "one_liner": "在摩尔定律放缓下，靠封装集成提升芯片性能的技术方向。",
+      "full_md": "**完整解释**：先进封装(Advanced Packaging)指 2.5D/3D、Chiplet、硅中介层等把多颗芯粒高密度集成的技术(CoWoS 是其一)。在晶体管微缩变难时，它成为继续提升算力密度的主战场，是 AI 供应链的价值高地之一。\n\n**边界**：产业术语，链条细分的重要一环；不同封装技术(2.5D vs 3D、不同厂商方案)竞争格局各异，不可笼统当作单一受益板块。",
+      "sources": [
+        "SEMI 行业资料; TSMC / ASE 技术文档"
+      ],
+      "version": 1,
+      "aliases": [
+        "Advanced Packaging"
+      ]
+    },
+    {
+      "term": "Capex",
+      "category": "AI叙事供应链",
+      "one_liner": "资本开支——企业购置长期资产的支出，AI叙事的核心变量。",
+      "full_md": "**完整解释**：Capex(Capital Expenditure)是企业购建厂房、设备、数据中心等长期资产的支出。云厂商(hyperscaler)的 Capex 指引是 AI 基础设施需求的先行读数，本工具在主题层每季追踪。它拉低当期自由现金流，却是未来产能的投入。\n\n**何时失灵/边界**：**严禁「总Capex↑=全链受益」式推论**——须细分投向(建筑/电力/GPU/网络/存储)；Capex 指引可被下修，且从支出到收入兑现有时滞；高 Capex 期 FCF 承压是常态，非经营恶化。",
+      "sources": [
+        "CFA Institute, Financial Reporting and Analysis; 各云厂商财报"
+      ],
+      "version": 1,
+      "aliases": [
+        "资本开支",
+        "资本支出"
+      ]
+    },
+    {
+      "term": "晶圆代工",
+      "category": "AI叙事供应链",
+      "one_liner": "受托为芯片设计公司制造晶圆的环节，台积电为龙头。",
+      "full_md": "**完整解释**：晶圆代工(Foundry)是专为无晶圆厂(fabless)设计公司(如 NVIDIA、AMD)制造芯片的环节，台积电、三星、英特尔代工为主要玩家。先进制程产能与良率是 AI 芯片供给的上游约束。\n\n**边界**：产业术语；代工是重资本、长周期行业，产能扩张有多年时滞；先进制程(3nm/2nm)与成熟制程的供需周期完全不同，不可混谈。",
+      "sources": [
+        "SEMI 行业资料; TSMC 财报"
+      ],
+      "version": 1,
+      "aliases": [
+        "Foundry"
+      ]
+    },
+    {
+      "term": "WFE",
+      "category": "AI叙事供应链",
+      "one_liner": "晶圆厂设备——制造芯片所需的半导体设备总称。",
+      "full_md": "**完整解释**：WFE(Wafer Fab Equipment)指光刻、刻蚀、沉积、量测等制造晶圆的核心设备，供应商包括 ASML、AMAT、Lam、KLA、东京电子。它是半导体资本开支的直接承接者，本工具关注标的(如 AMAT)正处此环节。\n\n**边界**：产业术语；WFE 需求由晶圆厂 Capex 驱动，具强周期性；各设备细分(光刻 vs 刻蚀 vs 量测)竞争格局与周期不同步，链条须细分。",
+      "sources": [
+        "SEMI, WFE Market Data; ASML / AMAT 财报"
+      ],
+      "version": 1,
+      "aliases": [
+        "晶圆厂设备"
+      ]
+    },
+    {
+      "term": "Hyperscaler",
+      "category": "AI叙事供应链",
+      "one_liner": "超大规模云厂商(微软/谷歌/亚马逊/Meta)，AI Capex的主力。",
+      "full_md": "**完整解释**：Hyperscaler 指运营超大规模数据中心的云厂商——微软 Azure、谷歌 GCP、亚马逊 AWS、Meta 等。它们的资本开支占据 AI 基础设施需求的大头，Capex 指引是全链需求的风向标，本工具在主题层每季跟踪。\n\n**边界**：产业术语；把 hyperscaler Capex 直接线性传导到某一环节受益是链条过长推论；各家投向结构(自研芯片 vs 采购GPU)不同，受益方各异。",
+      "sources": [
+        "各公司财报; 行业研究"
+      ],
+      "version": 1,
+      "aliases": [
+        "超大规模云厂商"
+      ]
+    },
+    {
+      "term": "GPU",
+      "category": "AI叙事供应链",
+      "one_liner": "图形处理器——并行计算架构，AI训练/推理的主力算力。",
+      "full_md": "**完整解释**：GPU(Graphics Processing Unit)凭大规模并行架构成为 AI 训练与推理的核心算力，NVIDIA 数据中心 GPU 为当前标杆。它与配套的 HBM、CoWoS、网络共同构成算力节点，是 AI 叙事的中枢环节。\n\n**边界**：产业术语；GPU 需求受模型训练/推理需求、竞品(ASIC/自研芯片)替代、供给瓶颈多方影响；「GPU 强=全AI链强」忽略了各环节分化。",
+      "sources": [
+        "行业技术资料; NVIDIA 财报"
+      ],
+      "version": 1,
+      "aliases": [
+        "图形处理器"
+      ]
+    },
+    {
+      "term": "ASIC",
+      "category": "AI叙事供应链",
+      "one_liner": "专用集成电路——为特定任务定制的芯片，AI推理的替代路线。",
+      "full_md": "**完整解释**：ASIC(Application-Specific Integrated Circuit)是为特定任务(如特定AI推理)定制的芯片，能效比通用 GPU 高但灵活性低。谷歌 TPU、各家自研 AI 芯片属此类，是对 GPU 主导格局的潜在分流，本工具在链条细分中区分 GPU/ASIC 路线。\n\n**边界**：产业术语；ASIC 与 GPU 是并存的路线之争而非零和，格局尚在演化；定制芯片研发周期长、门槛高，渗透节奏难预测。",
+      "sources": [
+        "行业技术资料"
+      ],
+      "version": 1,
+      "aliases": [
+        "专用集成电路"
+      ]
+    },
+    {
+      "term": "数据中心",
+      "category": "AI叙事供应链",
+      "one_liner": "承载算力的物理设施，AI基建叙事的落地载体。",
+      "full_md": "**完整解释**：数据中心(Data Center)是集中部署服务器、存储、网络与配套电力/散热的设施，是 AI 算力的物理落脚点。AI 浪潮下其瓶颈已从芯片延伸到**电力与散热**，本工具主题层把数据中心建筑/电力单列为链条细分环节。\n\n**边界**：产业术语；数据中心链极长(土建/电力/制冷/服务器/网络)，各环节受益与周期不同，严禁笼统当单一板块；电力供给正成为新约束。",
+      "sources": [
+        "行业研究; SEMI / 电力行业资料"
+      ],
+      "version": 1,
+      "aliases": [
+        "Data Center"
+      ]
+    },
+    {
+      "term": "8-K",
+      "category": "制度纪律",
+      "one_liner": "美股上市公司报告重大事件的即时披露表格。",
+      "full_md": "**完整解释**：8-K 是美国上市公司向 SEC 提交的「重大事件即时报告」，用于披露并购、高管变动、重大合同、财报发布等无法等到定期报告的事件，通常事件发生后4个工作日内提交。它是本工具信息流的一级信源(标题+首段可得)。\n\n**边界**：这是披露机制词条；8-K 只报「发生了什么」的事实，不含公司解读；并非所有重要信息都触发 8-K，部分通过新闻稿或定期报告披露。",
+      "sources": [
+        "SEC, Form 8-K General Instructions; sec.gov/EDGAR"
+      ],
+      "version": 1,
+      "aliases": []
+    },
+    {
+      "term": "10-K",
+      "category": "制度纪律",
+      "one_liner": "美股上市公司的年度报告，最全面的基本面披露。",
+      "full_md": "**完整解释**：10-K 是向 SEC 提交的年度报告，含经审计财务报表、业务描述、风险因素(Risk Factors)、管理层讨论(MD&A)等，是研究公司基本面最权威的一手文档。风险因素与MD&A章节尤其值得精读。\n\n**边界**：披露机制词条；10-K 信息全面但滞后(一年一次)、篇幅大；风险因素多为免责式罗列，需辨别哪些是真实重大风险。",
+      "sources": [
+        "SEC, Form 10-K; sec.gov/EDGAR"
+      ],
+      "version": 1,
+      "aliases": []
+    },
+    {
+      "term": "10-Q",
+      "category": "制度纪律",
+      "one_liner": "美股上市公司的季度报告，未经审计的定期财务披露。",
+      "full_md": "**完整解释**：10-Q 是季度提交的定期报告(一年三次，第四季并入10-K)，含未经审计的季度财务报表与MD&A，是季度基本面跟踪的主源。财报季的营收/EPS 与指引即由此及配套新闻稿发布。\n\n**边界**：披露机制词条；10-Q 未经审计，精度低于10-K；季度数据受季节性与一次性项目影响，须结合同比与趋势读。",
+      "sources": [
+        "SEC, Form 10-Q; sec.gov/EDGAR"
+      ],
+      "version": 1,
+      "aliases": []
+    },
+    {
+      "term": "13F",
+      "category": "制度纪律",
+      "one_liner": "机构季度持仓披露，可低频观察大资金的「做了什么」。",
+      "full_md": "**完整解释**：13F 是管理资产超1亿美元的机构投资者按季向 SEC 披露的美股多头持仓报告。本工具将其作为「说的 vs 做的」低频辅助证据(投资人声音模块)，对照名人言论与实际持仓，而**非实时验证**。\n\n**何时失灵**：13F 有最长45天滞后，披露时持仓可能已变；只报多头、不含空头与衍生品，画面不完整；不反映建仓成本与意图。切勿当交易信号。",
+      "sources": [
+        "SEC, Form 13F FAQ; sec.gov/EDGAR"
+      ],
+      "version": 1,
+      "aliases": []
+    },
+    {
+      "term": "SEC",
+      "category": "制度纪律",
+      "one_liner": "美国证券交易委员会，美股信息披露与监管机构。",
+      "full_md": "**完整解释**：SEC(Securities and Exchange Commission)是美国证券市场的联邦监管机构，强制上市公司通过 EDGAR 系统披露 8-K/10-K/10-Q/13F 等文件。其披露制度是美股信息透明度的基础，也是本工具信源可靠性的制度保障。\n\n**边界**：机构/制度词条；监管保障披露真实性但不背书公司质量；EDGAR 原始文件是最一手、无中介润色的信息来源。",
+      "sources": [
+        "sec.gov; SEC, About EDGAR"
+      ],
+      "version": 1,
+      "aliases": [
+        "美国证券交易委员会"
+      ]
+    },
+    {
+      "term": "锁定期",
+      "category": "制度纪律",
+      "one_liner": "IPO后内部人限售的时间段，到期解禁常带来抛压。",
+      "full_md": "**完整解释**：锁定期(Lockup Period)是 IPO 后禁止内部人(创始人、早期投资者、员工)出售股份的约定期(常为90–180天)。到期「解禁」时潜在供给增加，常被列为价格事件。执行计划器把锁定期解禁纳入事件日历。\n\n**何时失灵**：解禁带来抛压是常见预期但非必然，是否真抛取决于持有人意愿；市场常已提前定价，解禁日反应可能与直觉相反。",
+      "sources": [
+        "SEC, IPO 相关规则; Bradley et al. (2001), Venture Capital and IPO Lockup Expiration"
+      ],
+      "version": 1,
+      "aliases": [
+        "Lockup Period"
+      ]
+    },
+    {
+      "term": "指数纳入",
+      "category": "制度纪律",
+      "one_liner": "标的被纳入主要指数，触发被动资金机械买入。",
+      "full_md": "**完整解释**：指数纳入(Index Inclusion)指个股被加入标普500、纳指100等主流指数，跟踪这些指数的被动基金须按权重机械买入，常在生效日附近产生技术性需求。它是可预知的资金流事件，纳入事件日历。\n\n**何时失灵**：「纳入效应」随被动资金规模变化而减弱，且市场常提前抢跑，生效日已price in；技术性买盘是一次性的，不改变基本面。",
+      "sources": [
+        "S&P Dow Jones Indices, Methodology; Chen, Noronha & Singal (2004), Index Effect"
+      ],
+      "version": 1,
+      "aliases": [
+        "Index Inclusion"
+      ]
+    },
+    {
+      "term": "财报季",
+      "category": "制度纪律",
+      "one_liner": "上市公司集中发布季度业绩的时段，波动高发期。",
+      "full_md": "**完整解释**：财报季(Earnings Season)是每季度大批公司集中发布业绩与指引的时段(通常季度结束后数周)。个股财报日是最大的可预知波动源之一——股价常对「相对一致预期的差异」与前瞻指引剧烈反应。执行计划器据此做事件冲突检查。\n\n**边界**：日程性词条；要点在纪律——财报是二元高波动事件，机制上应绕开或留份额在事件后，而非预测结果。",
+      "sources": [
+        "行业惯例; CFA Institute, Equity Valuation"
+      ],
+      "version": 1,
+      "aliases": [
+        "Earnings Season"
+      ]
+    },
+    {
+      "term": "限价单",
+      "category": "交易机制",
+      "one_liner": "指定价格或更优才成交的委托，控成本但不保证成交。",
+      "full_md": "**完整解释**：限价单(Limit Order)设定可接受的最差价格，只在该价或更优时成交，用价格确定性换成交确定性。执行计划器**只用限价单**排布 ATR 阶梯，配时间止损，以压缩执行方差、消除追价的最差行为。\n\n**何时失灵**：价格未触及则不成交，可能错过快速行情；挂单价过于理想会长期挂空；极端行情下部分成交留下尾单，需时间止损补齐。",
+      "sources": [
+        "Harris, Larry (2003), Trading and Exchanges"
+      ],
+      "version": 1,
+      "aliases": [
+        "Limit Order"
+      ]
+    },
+    {
+      "term": "市价单",
+      "category": "交易机制",
+      "one_liner": "以当前最优可得价立即成交的委托，保成交不保价格。",
+      "full_md": "**完整解释**：市价单(Market Order)不设价格、立即以对手方最优价成交，换取成交确定性。它保证成交但放弃价格控制，在流动性差或波动大时可能以远差于预期的价成交(滑点)。\n\n**何时失灵**：低流动性/盘前盘后用市价单易遭大滑点；本工具的执行纪律**主张避开市价单**，尤其避开盘后半小时，正是为消除这类可控的最差成交。",
+      "sources": [
+        "Harris, Larry (2003), Trading and Exchanges"
+      ],
+      "version": 1,
+      "aliases": [
+        "Market Order"
+      ]
+    },
+    {
+      "term": "时间止损",
+      "category": "交易机制",
+      "one_liner": "按时间而非价格触发的了结规则，处理未成交尾单。",
+      "full_md": "**完整解释**：时间止损(Time Stop)以「到期未成交/未兑现即处理」为规则，而非价格触发。执行计划器给阶梯限价单配时间止损——窗口末未成交部分补齐，防止因过度挂等理想价而长期踏空，把「不决策」也纳入纪律。\n\n**边界**：这是执行纪律机制；它牺牲部分价格优化换取执行的确定完成，目的是压缩方差、消除拖延，不是收益优化工具。",
+      "sources": [
+        "交易执行实践; Harris, Larry (2003), Trading and Exchanges"
+      ],
+      "version": 1,
+      "aliases": [
+        "Time Stop"
+      ]
+    },
+    {
+      "term": "止损",
+      "category": "交易机制",
+      "one_liner": "价格触及预设水平时了结以限制损失的规则。",
+      "full_md": "**完整解释**：止损(Stop Loss)在价格达到预设不利水平时触发平仓，用于机械限制单笔损失、隔离情绪。它把「最多亏多少」前置为规则，是风险管理的基础工具。\n\n**何时失灵**：止损位易被日内波动扫掉后价格反转(被「洗出」)；跳空可跌破止损价致实际成交更差；止损设置带主观性，过紧频繁触发、过松失去保护。本工具只描述机制，不给具体止损建议。",
+      "sources": [
+        "交易执行实践; Harris, Larry (2003), Trading and Exchanges"
+      ],
+      "version": 1,
+      "aliases": [
+        "Stop Loss"
+      ]
+    },
+    {
+      "term": "分批建仓",
+      "category": "交易机制",
+      "one_liner": "把总仓位拆成多笔分次买入，摊平入场价、降低择时依赖。",
+      "full_md": "**完整解释**：分批建仓(Scaling In)将目标仓位拆成若干份、在不同价位/时点分次买入，以摊平成本、降低「一次性买在情绪高点」的方差。这正是执行计划器的核心思路——**不预测低点，只压缩执行方差**。\n\n**边界**：机制性策略；它降低择时方差但也可能摊高成本(若买入即涨)；价值在于消除最差行为与稳定纪律，而非保证更优均价。",
+      "sources": [
+        "交易执行实践; 本项目 DESIGN §3.5.8"
+      ],
+      "version": 1,
+      "aliases": [
+        "Scaling In"
+      ]
+    },
+    {
+      "term": "盘前盘后",
+      "category": "交易机制",
+      "one_liner": "常规交易时段外的延长交易，流动性差、波动大。",
+      "full_md": "**完整解释**：盘前(Pre-market)与盘后(After-hours)是常规时段外的延长交易时段，财报与重大新闻常在此发布。其特点是流动性稀薄、买卖价差大、价格易剧烈跳动。本工具的日内纪律**建议避开盘后半小时、只用限价单**。\n\n**何时失灵**：盘前盘后价格在开盘后常被大幅修正，不代表次日常规时段走向；薄流动性下市价单滑点极大，是可控最差行为的高发区。",
+      "sources": [
+        "Harris, Larry (2003), Trading and Exchanges"
+      ],
+      "version": 1,
+      "aliases": [
+        "Pre-market",
+        "After-hours"
+      ]
+    },
+    {
+      "term": "流动性",
+      "category": "交易机制",
+      "one_liner": "能以合理价格快速成交的容易程度。",
+      "full_md": "**完整解释**：流动性(Liquidity)指在不显著移动价格的前提下快速买卖的能力，常由成交量、买卖价差、盘口深度反映。高流动性降低交易成本与滑点；它在平静时充裕、在危机时骤然枯竭。\n\n**何时失灵**：流动性是「顺境充沛、逆境消失」的——最需要出场时往往最难出场；历史平均成交量无法预示极端时刻的枯竭。",
+      "sources": [
+        "Harris, Larry (2003), Trading and Exchanges; Amihud (2002), Illiquidity and Stock Returns"
+      ],
+      "version": 1,
+      "aliases": [
+        "Liquidity"
+      ]
+    },
+    {
+      "term": "买卖价差",
+      "category": "交易机制",
+      "one_liner": "最优买价与最优卖价之差，即时交易的隐性成本。",
+      "full_md": "**完整解释**：买卖价差(Bid-Ask Spread)= 最优卖价 − 最优买价，是做市商提供即时性的报酬，也是投资者每次进出的隐性成本。价差窄=流动性好、成本低；大盘股常极窄，小盘与盘前盘后显著变宽。\n\n**何时失灵**：价差随时间与波动剧烈变化，平静时的窄价差不代表事件时刻；跨越价差用市价单成交即锁定这笔成本，高频进出会显著侵蚀收益。",
+      "sources": [
+        "Harris, Larry (2003), Trading and Exchanges"
+      ],
+      "version": 1,
+      "aliases": [
+        "Bid-Ask Spread"
+      ]
+    },
+    {
+      "term": "Talk their book",
+      "category": "制度纪律",
+      "one_liner": "发言者推广自己已持有的仓位，需警惕的利益关联。",
+      "full_md": "**完整解释**：「Talk their book」指市场参与者(基金经理、分析师、名人)公开发表有利于自己现有持仓的言论。本工具在投资人声音模块**强制标注发言人持仓利益**，并用 13F 做「说的 vs 做的」对照，把利益冲突显式化。\n\n**边界**：这是认知/利益冲突提醒；并非所有 talk book 都是操纵，但听取任何公开观点都应先问「他持有什么、这话对他有何好处」；本工具定位是发现研究线索，不产生交易信号。",
+      "sources": [
+        "行为金融常识; 本项目 DESIGN §3.5"
+      ],
+      "version": 1,
+      "aliases": []
+    },
+    {
+      "term": "Append-only",
+      "category": "认识论纪律",
+      "one_liner": "只追加不覆盖——判断记录的所有历史版本永久保留。",
+      "full_md": "**完整解释**：Append-only(只追加)是本工具判断日志的铁律：判断可自由修改，但每次修改都是**追加一个新版本**，原文与历史版本全部保留可查(如 git)。对账单显示修改次数与观点漂移轨迹——**修改行为本身是被考核的数据**。任何版本的覆盖或删除都是 bug。\n\n**边界**：这是数据纪律与产品哲学，非可选功能。其目的是对抗事后合理化与记忆篡改，让「我当时到底怎么想的」不可赖账。技术上对应事件溯源(event sourcing)思想。",
+      "sources": [
+        "本项目 DESIGN §2.4; 事件溯源(Event Sourcing)模式"
+      ],
+      "version": 1,
+      "aliases": [
+        "只追加"
+      ]
+    },
+    {
+      "term": "可证伪",
+      "category": "认识论纪律",
+      "one_liner": "判断必须能被未来事实推翻，否则不构成真正的判断。",
+      "full_md": "**完整解释**：可证伪(Falsifiability)源自波普尔的科学哲学——一个陈述唯有能被观察推翻，才具备实质内容。本工具要求每条判断**必填一句可证伪表述**(如「这是过度反应，两周内修复」)，拒绝「长期看好」这类无法被事实检验的空泛表述，从而让判断可事后对账。\n\n**边界**：这是方法论纪律；工具只提示不强制(把要求可证伪的自律交给用户)；不可证伪的信念可以持有，但不进入判断考核体系。",
+      "sources": [
+        "Popper, K. (1959), The Logic of Scientific Discovery; 本项目 DESIGN §3.6"
+      ],
+      "version": 1,
+      "aliases": [
+        "Falsifiability"
+      ]
+    },
+    {
+      "term": "摘要铁律",
+      "category": "认识论纪律",
+      "one_liner": "AI摘要只压缩事实，禁止在L1卡片下任何影响/利好利空判断。",
+      "full_md": "**完整解释**：摘要铁律是本工具信息流的 guard 第二规则：L1 卡片的 AI 摘要**只能压缩事实**——「美光宣布HBM4提前量产」✅，「利好存储板块」❌。影响与判断必须等用户点击 L3 才生成。它由提示词+后端 guard 校验+验收抽查三重保障。\n\n**边界**：这是 AI 约束纪律，与「AI禁止投资结论」一脉相承；目的是防止 AI 的「伪全面感」在信息入口处就用解读污染事实，守住事实与判断的分离。",
+      "sources": [
+        "本项目 DESIGN §3.0.1; §2.2 AI约束"
+      ],
+      "version": 1,
+      "aliases": []
+    },
+    {
+      "term": "三基准",
+      "category": "认识论纪律",
+      "one_liner": "绝对收益、相对QQQ、相对行业ETF——三线并考防止β误认α。",
+      "full_md": "**完整解释**：三基准(Three Benchmarks)是本工具的考核框架：同时看绝对收益、相对 QQQ、相对行业ETF(半导体对 SOXX/SMH)。个股另看波动率与最大回撤，检验超额是否靠更高风险换来。三线并考是为拆穿「牛市里把 beta 误当能力」的认知陷阱。\n\n**边界**：这是考核制度而非指标；基准选错(拿错行业ETF)会误判；须与风险调整、样本量合看，单看任一基准都不完整。",
+      "sources": [
+        "本项目 DESIGN §2.5; Bodie, Kane, Marcus, Investments"
+      ],
+      "version": 1,
+      "aliases": [
+        "Three Benchmarks"
+      ]
+    },
+    {
+      "term": "β误认α",
+      "category": "认识论纪律",
+      "one_liner": "把承担市场风险得来的收益误当成自己的选股能力。",
+      "full_md": "**完整解释**：β误认α(Mistaking Beta for Alpha)指在牛市里，靠高 beta(承担更多市场风险)放大的收益被误读为真实的选股/择时能力(alpha)。这是本工具要防范的**头号认知风险**——使用者「自认优势尚未经检验」，三基准、预注册、证伪段回测、风险调整都是为拆穿它而设。\n\n**边界**：这是核心认知陷阱而非指标；区分「判断正确/结果赚钱/归因正确/运气有利」是本工具的第一原理；唯有足够样本+风险调整+相对基准才能初步分辨。",
+      "sources": [
+        "本项目 DESIGN §1、§12; Jensen, M. (1968)"
+      ],
+      "version": 1,
+      "aliases": [
+        "Mistaking Beta for Alpha"
+      ]
+    },
+    {
+      "term": "置信度",
+      "category": "认识论纪律",
+      "one_liner": "对某判断为真的主观概率，事后与实际兑现率校准。",
+      "full_md": "**完整解释**：置信度(Confidence Level)是使用者对某判断成立的主观概率估计，是判断档的必填字段。本工具在复盘时统计**各置信度档位的实际兑现率**——若标「80%把握」的判断只兑现50%，即暴露系统性过度自信，是校准认知的关键数据。\n\n**边界**：这是自我校准机制；单条判断的置信度无法验证，唯有大量同档判断的兑现率才有意义(故需足够样本)；校准本身是被长期考核的能力。",
+      "sources": [
+        "Tetlock, P. (2015), Superforecasting; 本项目 DESIGN §5"
+      ],
+      "version": 1,
+      "aliases": [
+        "Confidence Level"
+      ]
+    }
   ]
 }

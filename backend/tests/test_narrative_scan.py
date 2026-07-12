@@ -267,3 +267,51 @@ def test_scan_http_and_judgment_links_scan_id(client, store, monkeypatch):
     )
     assert j.status_code == 201
     assert scan_id in j.json()["supporting"]
+
+
+def test_scan_accepts_neutral_points(store):
+    """Slice 7 / v2.0: neutral_points with attribution + source_url."""
+    good = """
+    {
+      "dominant_narrative": "市场在讨论估值是否合理",
+      "bull_points": [],
+      "bear_points": [],
+      "neutral_points": [
+        {"attributed_to": "某卖方", "point": "中立评论：关注但未定方向", "source_url": "https://example.com/n", "date": "2026-07-08"}
+      ],
+      "recent_events": [
+        {"date": "2026-07-10", "fact": "某云厂重申年度capex指引", "source_url": "https://example.com/e"}
+      ]
+    }
+    """
+
+    def fn(**kwargs):
+        return CompletionResult(
+            text=good, model="mock-search", prompt_version="narrative_scan_v1.md", elapsed_ms=1
+        )
+
+    row, _, notice = run_narrative_scan(store, "AMAT", force=True, search_fn=fn)
+    assert notice is None
+    assert len(row.payload.neutral_points) == 1
+    assert row.payload.neutral_points[0].attributed_to == "某卖方"
+
+
+def test_scan_neutral_missing_source_url_soft_empty(store):
+    bad = """
+    {
+      "dominant_narrative": "x",
+      "bull_points": [],
+      "bear_points": [],
+      "neutral_points": [{"attributed_to": "卖方", "point": "中立评论：估值合理", "source_url": "", "date": "2026-07-08"}],
+      "recent_events": []
+    }
+    """
+
+    def fn(**kwargs):
+        return CompletionResult(
+            text=bad, model="mock-search", prompt_version="narrative_scan_v1.md", elapsed_ms=1
+        )
+
+    row, _, notice = run_narrative_scan(store, "NVDA", force=True, search_fn=fn)
+    assert notice == "暂无新叙事"
+    assert row.payload.neutral_points == []

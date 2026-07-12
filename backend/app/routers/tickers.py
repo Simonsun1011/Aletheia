@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from backend.app.config import get_settings
+from backend.app.market.ensure import ensure_local_market_data
 from backend.app.market.snapshot import build_snapshot
 from backend.app.models import TickerSnapshot
 
@@ -14,6 +15,8 @@ router = APIRouter(prefix="/tickers", tags=["tickers"])
 @router.get("/{symbol}/snapshot", response_model=TickerSnapshot)
 def get_snapshot(symbol: str) -> TickerSnapshot:
     settings = get_settings()
+    # Same on-demand path as console — stock page should not require a prior job.
+    ensure_local_market_data(settings.market_db_path, symbol.upper())
     payload = build_snapshot(settings.market_db_path, symbol)
     if payload is None:
         raise HTTPException(

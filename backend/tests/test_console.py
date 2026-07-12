@@ -118,12 +118,12 @@ def test_console_schema_whitelist_no_score(store, monkeypatch, tmp_path):
 
     def fake_fund(_):
         return {
-            "eps_revision_note": "EPS修正趋势数据暂缺（免费源无此数据）",
+            "eps_revision_note": "开源数据源无此数据",
             "forward_eps": 1.2,
             "forward_pe": 20.0,
             "recommendation_mean": None,
             "earnings_date": None,
-        }, ["EPS修正趋势数据暂缺（免费源无此数据）"]
+        }, ["EPS修正趋势数据暂缺（开源数据源无此数据）"]
 
     payload = build_console(
         store,
@@ -160,6 +160,11 @@ def test_fundamental_failure_null_others_ok(store, monkeypatch, tmp_path):
 
     conn = connect_market_db(settings.market_db_path)
     conn.close()
+    # Do not hit network in this unit test
+    monkeypatch.setattr(
+        "backend.app.services.console.ensure_local_market_data",
+        lambda *a, **k: ["no local market data for NVDA"],
+    )
 
     def boom(_):
         raise RuntimeError("no fund")
@@ -225,13 +230,13 @@ def test_console_http_and_judgment_with_plan(client, store, monkeypatch, tmp_pat
             macro_fn=lambda _: ({"vix": 14.0, "yield_10y": 4.0, "qqq_chg_20d": 0.02}, []),
             fundamental_fn=lambda _: (
                 {
-                    "eps_revision_note": "EPS修正趋势数据暂缺（免费源无此数据）",
+                    "eps_revision_note": "开源数据源无此数据",
                     "forward_eps": None,
                     "forward_pe": None,
                     "recommendation_mean": None,
                     "earnings_date": None,
                 },
-                ["EPS修正趋势数据暂缺（免费源无此数据）"],
+                ["EPS修正趋势数据暂缺（开源数据源无此数据）"],
             ),
         ),
     )

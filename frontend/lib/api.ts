@@ -110,6 +110,23 @@ export async function apiPost<T>(
   }
 }
 
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  try {
+    const res = await fetch(
+      `${API_BASE}${path}`,
+      withTimeout({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+    );
+    if (!res.ok) throw new Error(await parseError(res));
+    return res.json();
+  } catch (err) {
+    throw friendlyFetchError(err);
+  }
+}
+
 /** LLM 交互（扫描 / promote 等）— 更长超时 */
 export async function apiPostLlm<T>(path: string, body: unknown): Promise<T> {
   return apiPost<T>(path, body, { timeoutMs: LLM_FETCH_TIMEOUT_MS });

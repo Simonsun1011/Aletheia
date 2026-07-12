@@ -15,17 +15,21 @@ from backend.app.logging_setup import setup_logging
 from backend.app.middleware import RequestIdMiddleware
 from backend.app.routers import (
     changefeed,
+    cloud,
     console,
     executions,
     feed,
     glossary,
     judgments,
+    meta,
     notes,
+    reviews,
     tickers,
     usage,
     watchlist,
 )
 from backend.app.stores.base import AppStore
+from backend.app.stores.factory import create_app_store
 from backend.app.stores.sqlite_store import SqliteStore
 
 settings = get_settings()
@@ -33,10 +37,7 @@ setup_logging(level=settings.log_level, log_dir=settings.log_dir)
 
 
 def create_store() -> AppStore:
-    s = get_settings()
-    store = SqliteStore(s.app_db_path, s.journal_dir)
-    store.init_schema()
-    return store
+    return create_app_store(get_settings())
 
 
 @asynccontextmanager
@@ -81,8 +82,11 @@ app.include_router(changefeed.router, prefix="/api")
 app.include_router(feed.router, prefix="/api")
 app.include_router(console.router, prefix="/api")
 app.include_router(glossary.router, prefix="/api")
+app.include_router(meta.router, prefix="/api")
 app.include_router(usage.router, prefix="/api")
 app.include_router(executions.router, prefix="/api")
+app.include_router(reviews.router, prefix="/api")
+app.include_router(cloud.router, prefix="/api")
 
 
 @app.exception_handler(RequestValidationError)

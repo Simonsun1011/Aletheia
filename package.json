@@ -1,0 +1,7 @@
+{
+  "name": "aletheia",
+  "private": true,
+  "scripts": {
+    "dev": "./scripts/dev.sh"
+  }
+}

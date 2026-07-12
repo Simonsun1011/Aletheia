@@ -115,7 +115,12 @@ def test_snapshot_sma200_null_with_warning(client, market_db):
     assert any("sma200" in w for w in body["warnings"])
 
 
-def test_snapshot_unknown_ticker_404(client, market_db):
+def test_snapshot_unknown_ticker_404(client, market_db, monkeypatch):
+    # Avoid live yfinance for a fake ticker
+    monkeypatch.setattr(
+        "backend.app.routers.tickers.ensure_local_market_data",
+        lambda *a, **k: [],
+    )
     r = client.get("/api/tickers/NOSUCH/snapshot")
     assert r.status_code == 404
 

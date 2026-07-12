@@ -384,6 +384,8 @@ class NarrativeScanPayload(BaseModel):
     dominant_narrative: str
     bull_points: list[NarrativePoint] = Field(default_factory=list)
     bear_points: list[NarrativePoint] = Field(default_factory=list)
+    # v2.0 / slice-07：中立评论（归因规则同 bull/bear）
+    neutral_points: list[NarrativePoint] = Field(default_factory=list)
     recent_events: list[NarrativeEvent] = Field(default_factory=list)
     generated_at: Optional[str] = None
     model: Optional[str] = None

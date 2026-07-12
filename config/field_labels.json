@@ -34,6 +34,7 @@
   "relative.vs_sector_20d": { "en": "20-Day Return vs Sector ETF", "zh": "20日相对行业ETF", "format": "percent", "family": "relative_return" },
   "relative.vs_sector_60d": { "en": "60-Day Return vs Sector ETF", "zh": "60日相对行业ETF", "format": "percent", "family": "relative_return" },
   "relative.sector_etf": { "en": "Sector ETF", "zh": "行业基准ETF", "format": "text", "family": null },
+  "fundamental.eps_revision_note": { "en": "EPS Revision Trend", "zh": "EPS修正趋势", "format": "text", "family": "eps_revision" },
   "fundamental.forward_eps": { "en": "Forward EPS", "zh": "远期每股盈利", "format": "number", "family": "eps" },
   "fundamental.forward_pe": { "en": "Forward P/E", "zh": "远期市盈率", "format": "ratio", "family": "pe" },
   "fundamental.recommendation_mean": { "en": "Analyst Rating (1=Strong Buy, 5=Sell)", "zh": "分析师评级均值", "format": "ratio", "family": "analyst_rating" },
