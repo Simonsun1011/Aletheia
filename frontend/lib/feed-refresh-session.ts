@@ -13,7 +13,8 @@ export type FeedRefreshDetail = {
   survivors?: number;
   skipped_existing?: number;
   cards_ok?: number;
-  llm_cap?: number;
+  display_max?: number;
+  folded?: number;
   fail?: number;
   current_title?: string;
   hint?: string;
@@ -38,6 +39,8 @@ export type FeedRefreshStatus = {
       filtered?: number;
       prescreen_discarded?: number;
       survivors?: number;
+      display_max?: number;
+      folded?: number;
       cancelled?: number;
     };
   } | null;

@@ -322,7 +322,7 @@ def _run_refresh(
             fetch_stats = fetch_batch(store, batch, on_progress=progress)
         _set_state(
             phase="digest",
-            message="准备摘要：读取并去重原始稿…",
+            message="准备入流：初筛、去重、打标与排序…",
             detail={"step": "digest_prepare"},
         )
         digest_stats = digest_batch(

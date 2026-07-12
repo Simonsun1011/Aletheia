@@ -91,21 +91,19 @@ def test_alias_match_enters_card_with_object(store, monkeypatch):
         )
     )
 
-    def mock_complete(**kwargs):
-        return CompletionResult(
-            text="Applied Materials announced a new etch tool for foundries.",
-            model="mock",
-            prompt_version="summarize_card_v1.md",
-            elapsed_ms=1,
-        )
-
-    monkeypatch.setattr("backend.app.services.digest.ai_adapter.complete", mock_complete)
+    monkeypatch.setattr(
+        "backend.app.services.digest.ai_adapter.complete",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("digest must not call LLM")
+        ),
+    )
     stats = digest_batch(store, "2026-07-11")
     assert stats["ok"] == 1
     assert stats["filtered"] == 0
     cards = store.list_feed_cards(batch_date="2026-07-11")
     assert len(cards) == 1
     assert "AMAT" in (cards[0].objects or "")
+    assert cards[0].summary is None
 
 
 def test_alias_in_summary_only_does_not_keep(store):
@@ -144,12 +142,8 @@ def test_skip_relevance_source_bypasses_filter(store, monkeypatch, tmp_path):
 
     def mock_complete(**kwargs):
         calls["n"] += 1
-        return CompletionResult(
-            text="Unrelated item summarized factually.",
-            model="mock",
-            prompt_version="summarize_card_v1.md",
-            elapsed_ms=1,
-        )
+        assert kwargs["purpose"] != "summary"
+        raise RuntimeError("tag model unavailable")
 
     monkeypatch.setattr("backend.app.services.digest.ai_adapter.complete", mock_complete)
     feeds = load_feeds()
@@ -158,6 +152,9 @@ def test_skip_relevance_source_bypasses_filter(store, monkeypatch, tmp_path):
     assert stats["filtered"] == 0
     assert stats["ok"] == 1
     assert calls["n"] == 1
+    cards = store.list_feed_cards(batch_date="2026-07-11")
+    assert len(cards) == 1
+    assert cards[0].summary is None
 
 
 def test_get_feed_filtered(client, store, monkeypatch):

@@ -70,6 +70,9 @@ def test_promote_then_confirm(client, store, monkeypatch):
     assert r.status_code == 201
     draft = r.json()
     assert draft["user_confirmed"] == 0
+    assert draft["fact_text"] == (
+        "Applied Materials announced a new etch tool for advanced nodes."
+    )
     assert client.get("/api/changefeed").json() == []
 
     conf = client.post(
@@ -85,7 +88,7 @@ def test_promote_guard_violation(client, store, monkeypatch):
     _card(store)
     bad = {
         "object": "AMAT",
-        "fact_text": "因此建议买入，目标价250",
+        "impact_path": "因此建议买入，目标价250",
         "confirmation": "speculative",
         "category": "company",
     }
@@ -101,3 +104,11 @@ def test_promote_guard_violation(client, store, monkeypatch):
     r = client.post("/api/feed/01PROMOTECARD/promote")
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "AI_GUARD_VIOLATION"
+
+
+def test_promote_requires_summary(client, store):
+    card = _card(store)
+    store.cache_feed_summary(card.id, "", "2026-07-11T20:01:00Z")
+    r = client.post("/api/feed/01PROMOTECARD/promote")
+    assert r.status_code == 409
+    assert r.json()["error"]["code"] == "SUMMARY_REQUIRED"

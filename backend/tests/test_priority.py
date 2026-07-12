@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from backend.app.ai.adapter import CompletionResult
 from backend.app.feed.priority import score_candidate
 from backend.app.feed.triage import triage, triage_configured
 from backend.app.services.digest import digest_batch
@@ -93,27 +92,21 @@ def test_digest_folds_tail_not_blind_drop(store, monkeypatch):
     store.add_watchlist(WatchlistCreate(ticker="NVDA", tier="focus", add_reason="test"))
     store.add_watchlist(WatchlistCreate(ticker="TSM", tier="base", add_reason="test"))
 
-    calls = {"n": 0}
-
-    def mock_complete(**kwargs):
-        calls["n"] += 1
-        return CompletionResult(
-            text='{"summary":"Company announced a semiconductor update.","tags":["compute-chip"],"tag_suggestions":[]}',
-            model="mock",
-            prompt_version="summarize_card_v2.md",
-            elapsed_ms=1,
-        )
-
-    monkeypatch.setattr("backend.app.services.digest.ai_adapter.complete", mock_complete)
-    stats = digest_batch(store, "2026-07-12", max_llm=2)
-    assert calls["n"] == 2
-    assert stats["ok"] == 2
-    assert stats.get("folded", 0) >= 1
+    monkeypatch.setattr(
+        "backend.app.services.digest.ai_adapter.complete",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("digest must not call LLM")
+        ),
+    )
+    stats = digest_batch(store, "2026-07-12", display_max=2)
+    assert stats["ok"] == 4
+    assert stats["folded"] == 2
     cards = store.list_feed_cards(batch_date="2026-07-12", days=1)
     folded = [c for c in cards if c.folded]
-    summarized = [c for c in cards if not c.folded and c.summary]
-    assert len(summarized) == 2
-    assert len(folded) >= 1
-    # SEC/focus should be in summarized, not only wires
-    assert any("8-K" in c.title or "NVIDIA" in c.title for c in summarized)
+    displayed = [c for c in cards if not c.folded]
+    assert len(displayed) == 2
+    assert len(folded) == 2
+    assert all(c.summary is None for c in cards)
+    # SEC/focus should be displayed, not only wires
+    assert any("8-K" in c.title or "NVIDIA" in c.title for c in displayed)
     assert all(c.priority_score is not None for c in cards)

@@ -76,7 +76,9 @@ CREATE TABLE IF NOT EXISTS quick_notes (
     id TEXT PRIMARY KEY,
     created_at TEXT NOT NULL,
     text TEXT NOT NULL,
-    object TEXT
+    object TEXT,
+    source_lang TEXT,
+    source_card_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS watchlist (
@@ -118,18 +120,28 @@ CREATE TABLE IF NOT EXISTS feed_cards (
     source TEXT,
     title TEXT NOT NULL,
     url TEXT NOT NULL,
+    excerpt TEXT,
     summary TEXT,
+    summary_generated_at TEXT,
     objects TEXT,
     dedup_group TEXT,
     batch_date TEXT NOT NULL,
     marked_at TEXT,
     user_comment TEXT,
+    comment_source_lang TEXT,
     priority_score REAL,
     priority_reasons TEXT,
     folded INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_feed_cards_batch ON feed_cards(batch_date);
 CREATE INDEX IF NOT EXISTS idx_feed_cards_dedup ON feed_cards(dedup_group);
+
+CREATE TABLE IF NOT EXISTS summary_translations (
+    card_id TEXT NOT NULL,
+    lang TEXT NOT NULL,
+    text TEXT NOT NULL,
+    PRIMARY KEY (card_id, lang)
+);
 
 CREATE TABLE IF NOT EXISTS feed_raw (
     id TEXT PRIMARY KEY,
@@ -341,6 +353,7 @@ class SqliteStore(AppStore):
         self._migrate_glossary_aliases()
         self._migrate_tags_archived_status()
         self._migrate_feed_card_mark_comment()
+        self._migrate_lazy_feed_summary()
         from backend.app.services.glossary import import_glossary_seed
         from backend.app.services.tags import (
             seed_topic_tags,
@@ -511,6 +524,23 @@ class SqliteStore(AppStore):
             self._conn.execute(
                 "ALTER TABLE feed_cards ADD COLUMN folded INTEGER NOT NULL DEFAULT 0"
             )
+
+    def _migrate_lazy_feed_summary(self) -> None:
+        """Slice 8 v0.12: excerpt/lazy summary cache and note provenance."""
+        fcols = {
+            r[1]
+            for r in self._conn.execute("PRAGMA table_info(feed_cards)").fetchall()
+        }
+        for name in ("excerpt", "summary_generated_at", "comment_source_lang"):
+            if fcols and name not in fcols:
+                self._conn.execute(f"ALTER TABLE feed_cards ADD COLUMN {name} TEXT")
+        ncols = {
+            r[1]
+            for r in self._conn.execute("PRAGMA table_info(quick_notes)").fetchall()
+        }
+        for name in ("source_lang", "source_card_id"):
+            if ncols and name not in ncols:
+                self._conn.execute(f"ALTER TABLE quick_notes ADD COLUMN {name} TEXT")
 
     @classmethod
     def for_request(
@@ -792,12 +822,15 @@ class SqliteStore(AppStore):
             created_at=_now_iso(),
             text=body.text,
             object=body.object,
+            source_lang=body.source_lang,
+            source_card_id=body.source_card_id,
         )
         row = note.model_dump()
         jsonl_mirror.append_row(self.journal_dir, "quick_notes", row)
         self._execute(
-            "INSERT INTO quick_notes (id, created_at, text, object) "
-            "VALUES (:id, :created_at, :text, :object)",
+            "INSERT INTO quick_notes "
+            "(id, created_at, text, object, source_lang, source_card_id) "
+            "VALUES (:id, :created_at, :text, :object, :source_lang, :source_card_id)",
             row,
         )
         self._conn.commit()
@@ -1033,16 +1066,20 @@ class SqliteStore(AppStore):
         self._conn.execute(
             """
             INSERT INTO feed_cards (
-                id, fetched_at, published_at, source, title, url, summary,
+                id, fetched_at, published_at, source, title, url, excerpt, summary,
+                summary_generated_at,
                 objects, dedup_group, batch_date, marked_at, user_comment,
-                priority_score, priority_reasons, folded
+                comment_source_lang, priority_score, priority_reasons, folded
             ) VALUES (
-                :id, :fetched_at, :published_at, :source, :title, :url, :summary,
+                :id, :fetched_at, :published_at, :source, :title, :url, :excerpt,
+                :summary, :summary_generated_at,
                 :objects, :dedup_group, :batch_date, :marked_at, :user_comment,
-                :priority_score, :priority_reasons, :folded
+                :comment_source_lang, :priority_score, :priority_reasons, :folded
             )
             ON CONFLICT(id) DO UPDATE SET
+                excerpt=COALESCE(excluded.excerpt, feed_cards.excerpt),
                 summary=excluded.summary,
+                summary_generated_at=excluded.summary_generated_at,
                 objects=excluded.objects,
                 url=excluded.url,
                 source=excluded.source,
@@ -1050,7 +1087,10 @@ class SqliteStore(AppStore):
                 priority_reasons=excluded.priority_reasons,
                 folded=excluded.folded,
                 marked_at=COALESCE(excluded.marked_at, feed_cards.marked_at),
-                user_comment=COALESCE(excluded.user_comment, feed_cards.user_comment)
+                user_comment=COALESCE(excluded.user_comment, feed_cards.user_comment),
+                comment_source_lang=COALESCE(
+                    excluded.comment_source_lang, feed_cards.comment_source_lang
+                )
             """,
             row,
         )
@@ -1063,6 +1103,7 @@ class SqliteStore(AppStore):
         *,
         marked: Optional[bool] = None,
         user_comment: Optional[str] = None,
+        source_lang: Optional[str] = None,
     ) -> FeedCard:
         card = self.get_feed_card(card_id)
         if card is None:
@@ -1073,18 +1114,56 @@ class SqliteStore(AppStore):
         elif marked is False:
             new_marked_at = None
         new_comment = card.user_comment if user_comment is None else user_comment
+        new_source_lang = card.comment_source_lang
+        if user_comment is not None:
+            new_source_lang = source_lang if user_comment.strip() else None
         self._conn.execute(
             """
             UPDATE feed_cards
-            SET marked_at = ?, user_comment = ?
+            SET marked_at = ?, user_comment = ?, comment_source_lang = ?
             WHERE id = ?
             """,
-            (new_marked_at, new_comment, card_id),
+            (new_marked_at, new_comment, new_source_lang, card_id),
         )
         self._conn.commit()
         updated = self.get_feed_card(card_id)
         assert updated is not None
         return updated
+
+    def cache_feed_summary(
+        self, card_id: str, summary: str, generated_at: str
+    ) -> FeedCard:
+        cur = self._conn.execute(
+            "UPDATE feed_cards SET summary = ?, summary_generated_at = ? WHERE id = ?",
+            (summary, generated_at, card_id),
+        )
+        if cur.rowcount == 0:
+            raise KeyError(card_id)
+        self._conn.commit()
+        card = self.get_feed_card(card_id)
+        assert card is not None
+        return card
+
+    def get_summary_translation(self, card_id: str, lang: str) -> Optional[str]:
+        row = self._conn.execute(
+            "SELECT text FROM summary_translations WHERE card_id = ? AND lang = ?",
+            (card_id, lang),
+        ).fetchone()
+        return str(row["text"]) if row else None
+
+    def upsert_summary_translation(
+        self, card_id: str, lang: str, text: str
+    ) -> str:
+        self._conn.execute(
+            """
+            INSERT INTO summary_translations (card_id, lang, text)
+            VALUES (?, ?, ?)
+            ON CONFLICT(card_id, lang) DO UPDATE SET text=excluded.text
+            """,
+            (card_id, lang, text),
+        )
+        self._conn.commit()
+        return text
 
     def get_feed_card(self, card_id: str) -> Optional[FeedCard]:
         row = self._conn.execute(

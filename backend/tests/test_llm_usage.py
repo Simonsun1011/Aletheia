@@ -122,7 +122,9 @@ def test_adapter_records_on_success(usage_wired, monkeypatch, tmp_path):
     assert llm_usage.aggregate_usage("month")["calls"] == before + 1
 
 
-def test_batch_budget_skips_llm(usage_wired, monkeypatch, caplog):
+def test_digest_tag_call_respects_batch_budget_and_keeps_card(
+    usage_wired, monkeypatch
+):
     store = usage_wired
     monkeypatch.setenv("MONTHLY_LLM_BUDGET_USD", "0.001")
     _seed_cost(store, cost=1.0)
@@ -131,6 +133,8 @@ def test_batch_budget_skips_llm(usage_wired, monkeypatch, caplog):
 
     def raise_budget(**kw):
         called["n"] += 1
+        assert kw["purpose"] != "summary"
+        assert kw["budget_mode"] == "batch"
         llm_usage.assert_batch_budget_allows()
         raise AssertionError("unreachable")
 
@@ -148,13 +152,15 @@ def test_batch_budget_skips_llm(usage_wired, monkeypatch, caplog):
             "feed_id": "prnewswire_tech",
         }
     )
-    with caplog.at_level("ERROR"):
-        stats = digest_mod.digest_batch(
-            store, "2026-07-11", complete_fn=raise_budget
-        )
-    assert stats["fail"] >= 1
+    stats = digest_mod.digest_batch(
+        store, "2026-07-11", complete_fn=raise_budget
+    )
+    assert stats["fail"] == 0
+    assert stats["ok"] == 1
     assert called["n"] == 1
-    assert any("budget" in r.message.lower() for r in caplog.records)
+    cards = store.list_feed_cards(batch_date="2026-07-11")
+    assert len(cards) == 1
+    assert cards[0].summary is None
 
 
 def test_interactive_budget_warning_on_promote(client, store, monkeypatch):

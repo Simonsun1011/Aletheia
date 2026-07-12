@@ -133,6 +133,11 @@ def promote_card(
     card = store.get_feed_card(card_id)
     if card is None:
         raise KeyError(card_id)
+    if not (card.summary or "").strip():
+        raise ChangefeedError(
+            "SUMMARY_REQUIRED",
+            "generate the card summary before promoting it",
+        )
     complete = complete_fn or ai_adapter.complete
     user_content = (
         f"title: {card.title}\n"
@@ -157,6 +162,9 @@ def promote_card(
             {"matched": g.matched},
         )
     data = _parse_json_object(result.text)
+    # The model chooses structure only. The factual body is the cached summary,
+    # byte-for-byte, and cannot be rewritten by promotion.
+    data["fact_text"] = card.summary
     event = _event_from_ai(data, default_url=_primary_url(card.url))
     stored = store.create_event(event)
     return stored, result.budget_warning

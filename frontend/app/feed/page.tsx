@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, apiPostLlm } from "@/lib/api";
 import { TopNav, Card, Chip, Empty, SkeletonCard, Modal } from "@/components/ui";
 import { TypeTag } from "@/components/info";
 import { toast } from "@/components/toast";
@@ -29,6 +29,9 @@ type FeedCardView = {
   id: string;
   title: string;
   summary?: string | null;
+  excerpt?: string | null;
+  summary_generated_at?: string | null;
+  comment_source_lang?: string | null;
   source?: string | null;
   urls: string[];
   object_list: string[];
@@ -70,6 +73,14 @@ type EventDraft = {
 
 type Scope = "company" | "theme" | "macro" | "other";
 
+type SummaryResponse = {
+  summary: string;
+  summary_generated_at?: string | null;
+  cached: boolean;
+};
+
+type TranslationResponse = { lang: string; text: string; cached: boolean };
+
 const DAY_OPTIONS = [1, 3, 7, 30] as const;
 
 export default function FeedPage() {
@@ -98,6 +109,10 @@ export default function FeedPage() {
   const [refreshElapsed, setRefreshElapsed] = useState<string | null>(null);
   const [refreshStale, setRefreshStale] = useState(false);
   const [pollFailed, setPollFailed] = useState(false);
+  const [summaryBusy, setSummaryBusy] = useState<Record<string, boolean>>({});
+  const [translationBusy, setTranslationBusy] = useState<Record<string, boolean>>({});
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [shownTranslations, setShownTranslations] = useState<Record<string, boolean>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const handledFinishRef = useRef(false);
 
@@ -335,6 +350,69 @@ export default function FeedPage() {
     }
   }
 
+  async function onGenerateSummary(card: FeedCardView) {
+    setSummaryBusy((v) => ({ ...v, [card.id]: true }));
+    try {
+      const result = await apiPostLlm<SummaryResponse>(
+        `/feed/${card.id}/summary`,
+        {}
+      );
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              cards: current.cards.map((item) =>
+                item.id === card.id
+                  ? {
+                      ...item,
+                      summary: result.summary,
+                      summary_generated_at: result.summary_generated_at,
+                    }
+                  : item
+              ),
+            }
+          : current
+      );
+      toast.success(result.cached ? "已读取缓存摘要" : "摘要已生成");
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    } finally {
+      setSummaryBusy((v) => ({ ...v, [card.id]: false }));
+    }
+  }
+
+  async function onToggleTranslation(card: FeedCardView) {
+    if (shownTranslations[card.id]) {
+      setShownTranslations((v) => ({ ...v, [card.id]: false }));
+      return;
+    }
+    if (translations[card.id]) {
+      setShownTranslations((v) => ({ ...v, [card.id]: true }));
+      return;
+    }
+    setTranslationBusy((v) => ({ ...v, [card.id]: true }));
+    try {
+      const result = await apiPostLlm<TranslationResponse>(
+        `/feed/${card.id}/summary/translate?lang=zh`,
+        {}
+      );
+      setTranslations((v) => ({ ...v, [card.id]: result.text }));
+      setShownTranslations((v) => ({ ...v, [card.id]: true }));
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    } finally {
+      setTranslationBusy((v) => ({ ...v, [card.id]: false }));
+    }
+  }
+
+  function sourceLangFor(card: FeedCardView): string {
+    if (shownTranslations[card.id]) return "zh";
+    const summary = card.summary ?? "";
+    if (/[\u3040-\u30ff]/.test(summary)) return "ja";
+    if (/[\u4e00-\u9fff]/.test(summary)) return "zh";
+    return "en";
+  }
+
   async function onToggleMark(card: FeedCardView) {
     setBusy(true);
     try {
@@ -354,6 +432,7 @@ export default function FeedPage() {
       await apiPost(`/feed/${commentFor.id}/mark`, {
         marked: true,
         user_comment: commentText.trim() || null,
+        source_lang: commentText.trim() ? sourceLangFor(commentFor) : null,
       });
       setCommentFor(null);
       setCommentText("");
@@ -442,9 +521,46 @@ export default function FeedPage() {
             </div>
           </div>
         )}
+        {c.summary && (
+          <div className="actions" style={{ marginTop: 0, marginBottom: "var(--s3)" }}>
+            <button
+              type="button"
+              className="link-btn"
+              disabled={translationBusy[c.id]}
+              onClick={() => void onToggleTranslation(c)}
+            >
+              {translationBusy[c.id]
+                ? "翻译中…"
+                : shownTranslations[c.id]
+                  ? "收起译文"
+                  : "翻译成中文"}
+            </button>
+          </div>
+        )}
+        {c.summary && shownTranslations[c.id] && translations[c.id] && (
+          <div className="note" style={{ marginBottom: "var(--s3)" }}>
+            <strong>中文译文</strong>
+            <p style={{ margin: "4px 0 0" }}>{translations[c.id]}</p>
+          </div>
+        )}
+        {!c.summary && (
+          <div style={{ marginBottom: "var(--s3)" }}>
+            <button
+              type="button"
+              className="secondary btn-small"
+              disabled={summaryBusy[c.id]}
+              onClick={() => void onGenerateSummary(c)}
+            >
+              {summaryBusy[c.id] ? "生成摘要中…" : "生成摘要"}
+            </button>
+            <span className="muted" style={{ marginLeft: 8 }}>
+              评论与记入事件需先生成摘要
+            </span>
+          </div>
+        )}
         {c.folded && !c.summary && (
           <p className="muted" style={{ marginBottom: "var(--s3)" }}>
-            低优先折叠：未调用摘要模型（标题+来源保留，可展开原文）
+            展示上限外折叠（标题、来源与原文链接均保留）
           </p>
         )}
         {c.user_comment && (
@@ -488,7 +604,8 @@ export default function FeedPage() {
           <button
             type="button"
             className="secondary btn-small"
-            disabled={busy}
+            disabled={busy || !c.summary}
+            title={!c.summary ? "请先生成摘要" : undefined}
             onClick={() => {
               setCommentFor(c);
               setCommentText(c.user_comment ?? "");
@@ -499,7 +616,8 @@ export default function FeedPage() {
           <button
             type="button"
             className="secondary btn-small"
-            disabled={busy}
+            disabled={busy || !c.summary}
+            title={!c.summary ? "请先生成摘要" : undefined}
             onClick={() => onPromote(c.id)}
           >
             记入事件
@@ -515,7 +633,7 @@ export default function FeedPage() {
       <div className="read-column">
         <h1>信息流简报</h1>
         <p className="page-intro">
-          盘后批次卡片：摘要铁律 + 相关性硬过滤。时间筛选只查已入库卡片，不触发抓取。
+          盘后批次卡片：确定性质量过滤 + 优先级排序。时间筛选只查已入库卡片，不触发抓取。
         </p>
 
         <div
@@ -605,11 +723,12 @@ export default function FeedPage() {
                   <span>
                     {" "}
                     · 入卡 {refreshDetail!.cards_ok}
-                    {refreshDetail!.llm_cap != null
-                      ? `/${refreshDetail!.llm_cap}`
-                      : ""}
                   </span>
                 )}
+                {refreshDetail!.folded != null &&
+                  refreshDetail!.folded > 0 && (
+                    <span> · 折叠 {refreshDetail!.folded}</span>
+                  )}
               </div>
             )}
             {!pollFailed && refreshDetail?.hint && (
@@ -619,7 +738,7 @@ export default function FeedPage() {
             )}
             {!pollFailed && !refreshDetail?.hint && (
               <div className="muted" style={{ marginTop: 4 }}>
-                可切换到其他页；摘要阶段单条 AI 可能需数十秒，属正常。
+                可切换到其他页；后台会完成过滤、排序与卡片持久化。
               </div>
             )}
             {!pollFailed && refreshStale && (
@@ -664,7 +783,7 @@ export default function FeedPage() {
           <Empty icon="⚠">
             <p style={{ marginBottom: "var(--s3)" }}>信息流加载失败：{loadError}</p>
             <p className="muted" style={{ marginBottom: "var(--s3)" }}>
-              若刚点过「生成今日简报」，后台摘要可能仍在跑并把 API 堵死——请在终端重启后端后再点下方刷新。
+              若刚点过「生成今日简报」，后台管线可能仍在运行——请稍后重试或检查后端状态。
             </p>
             <button type="button" onClick={() => void refresh()}>
               重试加载
@@ -697,7 +816,7 @@ export default function FeedPage() {
                 ) : (
                   <>
                     <p style={{ marginBottom: "var(--s3)" }}>
-                      暂无简报卡片。不点生成则只读库里历史；点一次才抓取+摘要。
+                      暂无简报卡片。不点生成则只读库里历史；点一次才抓取、过滤并排序。
                     </p>
                     <button
                       type="button"
@@ -720,7 +839,7 @@ export default function FeedPage() {
                       onClick={() => setShowFolded((v) => !v)}
                     >
                       {showFolded ? "▾" : "▸"} 低优先折叠 {foldedCards.length}{" "}
-                      条（未摘要，可展开）
+                      条（可展开）
                     </button>
                     {showFolded && foldedCards.map(renderCard)}
                   </div>

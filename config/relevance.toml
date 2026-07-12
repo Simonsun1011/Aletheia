@@ -52,7 +52,7 @@ terms = [
 ]
 
 # Slice 3c：负向词表（律所索赔公关等）。命中则不进流，优先于正向命中。
-# 漏杀可走 GET /feed/filtered 复核。
+# 初筛默认只计数；仅 FEED_PRESCREEN_AUDIT=1 时写调参审计。
 [blocklist]
 patterns = [
   "Kahn Swick",
@@ -66,4 +66,17 @@ patterns = [
   "shareholder alert",
   "investors who purchased",
   "reminds investors",
+]
+
+# Slice 3c v0.12：内容农场 / SEO 估值软文。此检查独立于相关性豁免；
+# skip_relevance 的 per-ticker 源仍会命中并以 content_farm 原因丢弃。
+[quality]
+domains = ["simplywall.st", "fool.com"]
+sources = ["Zacks", "Motley Fool", "InvestorPlace"]
+title_patterns = [
+  "(?i)\\bshould you buy\\b",
+  "(?i)\\bis it a bargain\\b",
+  "(?i)\\bstock may be\\b",
+  "(?i)\\b\\d+ reasons? to (?:buy|sell)\\b",
+  "(?i)\\ba bargain on\\b",
 ]

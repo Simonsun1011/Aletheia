@@ -248,7 +248,11 @@ def test_mark_and_comment_writes_note(client, store):
     )
     r = client.post(
         "/api/feed/mk1/mark",
-        json={"marked": True, "user_comment": "值得复盘的产能信号"},
+        json={
+            "marked": True,
+            "user_comment": "值得复盘的产能信号",
+            "source_lang": "zh",
+        },
     )
     assert r.status_code == 200
     body = r.json()
@@ -256,9 +260,12 @@ def test_mark_and_comment_writes_note(client, store):
     assert body["user_comment"] == "值得复盘的产能信号"
     notes = store.list_notes()
     assert any("值得复盘的产能信号" in n.text and "feed:mk1" in n.text for n in notes)
+    note = next(n for n in notes if n.source_card_id == "mk1")
+    assert note.source_lang == "zh"
+    assert store.get_feed_card("mk1").comment_source_lang == "zh"
 
 
-def test_digest_parses_json_tags_and_suggestions(store, monkeypatch):
+def test_digest_persists_excerpt_and_applies_tag_only_json(store):
     store.insert_feed_raw(
         {
             "id": "r1",
@@ -274,31 +281,27 @@ def test_digest_parses_json_tags_and_suggestions(store, monkeypatch):
         }
     )
 
-    def fake_complete(**kwargs):
+    calls = []
+
+    def complete(**kwargs):
+        calls.append(kwargs)
         return CompletionResult(
-            text=(
-                '{"summary":"Micron said it will expand HBM capacity.",'
-                '"tags":["memory-packaging","compute-chip","Bogus"],'
-                '"tag_suggestions":["hbm-niche"]}'
-            ),
+            text='{"tags":["memory-packaging"],"tag_suggestions":["hbm-niche"]}',
             model="mock",
-            prompt_version="summarize_card_v2.md",
+            prompt_version="tag_card_v1.md",
             elapsed_ms=1,
         )
 
-    monkeypatch.setattr(
-        "backend.app.services.digest.ai_adapter.complete", fake_complete
-    )
-    stats = digest_batch(store, "2026-07-11")
+    stats = digest_batch(store, "2026-07-11", complete_fn=complete)
     assert stats["ok"] >= 1
     cards = store.list_feed_cards(batch_date="2026-07-11")
     assert cards
+    assert cards[0].summary is None
+    assert cards[0].excerpt == "Micron Technology said it will expand HBM capacity."
+    assert calls and all(call["purpose"] != "summary" for call in calls)
     tags = {t.tag_id for t in store.list_card_tags(cards[0].id)}
-    assert "memory-packaging" in tags
-    assert "compute-chip" in tags
-    assert "Bogus" not in tags
-    proposed = store.get_tag("hbm-niche")
-    assert proposed is not None and proposed.status == "proposed"
+    assert tags == {"MU", "memory-packaging"}
+    assert store.get_tag("hbm-niche").status == "proposed"
 
 
 def test_parse_digest_plain_text_fallback():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -20,10 +21,16 @@ from backend.app.services.feed_ingest import (
     request_refresh_cancel,
     start_refresh_background,
 )
+from backend.app.services.feed_summary import (
+    FeedSummaryError,
+    generate_summary,
+    translate_summary,
+)
 
 router = APIRouter(prefix="/feed", tags=["feed"])
 
 _ALLOWED_DAYS = {1, 3, 7, 30}
+_SOURCE_LANG = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$")
 
 
 def _error(status: int, code: str, message: str, detail: Optional[dict] = None):
@@ -224,11 +231,30 @@ def refresh_feed_endpoint(
 @router.post("/{card_id}/mark")
 def mark_card(card_id: str, body: FeedCardMarkRequest, store: StoreDep):
     """Mark / comment on a card — light corpus trail (not promote/event)."""
+    existing = store.get_feed_card(card_id)
+    if existing is None:
+        return _error(404, "NOT_FOUND", f"feed card {card_id} not found")
+    comment_supplied = "user_comment" in body.model_fields_set
+    comment = body.user_comment.strip() if body.user_comment else ""
+    if comment:
+        if not existing.summary:
+            return _error(
+                409,
+                "SUMMARY_REQUIRED",
+                "generate the card summary before commenting",
+            )
+        if not body.source_lang or not _SOURCE_LANG.fullmatch(body.source_lang):
+            return _error(
+                422,
+                "VALIDATION_ERROR",
+                "a valid source_lang is required for comments",
+            )
     try:
         card = store.mark_feed_card(
             card_id,
             marked=body.marked,
-            user_comment=body.user_comment,
+            user_comment=(comment if comment_supplied else None),
+            source_lang=body.source_lang,
         )
     except KeyError:
         raise HTTPException(
@@ -250,11 +276,33 @@ def mark_card(card_id: str, body: FeedCardMarkRequest, store: StoreDep):
             NoteCreate(
                 text=f"[feed:{card_id}] {body.user_comment.strip()}",
                 object=obj,
+                source_lang=body.source_lang,
+                source_card_id=card_id,
             )
         )
 
     tags = store.list_card_tags(card_id)
     return _card_view(card, tags)
+
+
+@router.post("/{card_id}/summary")
+def summarize(card_id: str, store: StoreDep):
+    try:
+        return generate_summary(store, card_id)
+    except KeyError:
+        return _error(404, "NOT_FOUND", f"feed card {card_id} not found")
+    except FeedSummaryError as e:
+        return _error(e.status, e.code, e.message)
+
+
+@router.post("/{card_id}/summary/translate")
+def translate(card_id: str, store: StoreDep, lang: str = Query(...)):
+    try:
+        return translate_summary(store, card_id, lang)
+    except KeyError:
+        return _error(404, "NOT_FOUND", f"feed card {card_id} not found")
+    except FeedSummaryError as e:
+        return _error(e.status, e.code, e.message)
 
 
 @router.post("/{card_id}/promote", status_code=201)
@@ -277,4 +325,4 @@ def promote(card_id: str, store: StoreDep):
             },
         )
     except ChangefeedError as e:
-        return _error(422, e.code, e.message, e.detail)
+        return _error(409 if e.code == "SUMMARY_REQUIRED" else 422, e.code, e.message, e.detail)

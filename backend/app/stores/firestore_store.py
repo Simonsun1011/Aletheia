@@ -151,7 +151,21 @@ class FirestoreStore(AppStore):
         *,
         marked: Optional[bool] = None,
         user_comment: Optional[str] = None,
+        source_lang: Optional[str] = None,
     ) -> FeedCard:
+        self._nyi()
+
+    def cache_feed_summary(
+        self, card_id: str, summary: str, generated_at: str
+    ) -> FeedCard:
+        self._nyi()
+
+    def get_summary_translation(self, card_id: str, lang: str) -> Optional[str]:
+        self._nyi()
+
+    def upsert_summary_translation(
+        self, card_id: str, lang: str, text: str
+    ) -> str:
         self._nyi()
 
     def latest_batch_date(self) -> Optional[str]:

@@ -139,7 +139,24 @@ class FeedStore(ABC):
         *,
         marked: Optional[bool] = None,
         user_comment: Optional[str] = None,
+        source_lang: Optional[str] = None,
     ) -> FeedCard:
+        ...
+
+    @abstractmethod
+    def cache_feed_summary(
+        self, card_id: str, summary: str, generated_at: str
+    ) -> FeedCard:
+        ...
+
+    @abstractmethod
+    def get_summary_translation(self, card_id: str, lang: str) -> Optional[str]:
+        ...
+
+    @abstractmethod
+    def upsert_summary_translation(
+        self, card_id: str, lang: str, text: str
+    ) -> str:
         ...
 
     @abstractmethod

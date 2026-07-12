@@ -23,6 +23,29 @@ class RelevanceLexicon:
     terms: list[tuple[str, Optional[str], str]] = field(default_factory=list)
     # Slice 3c: negative patterns — substring match on title+body, case-insensitive
     block_patterns: list[str] = field(default_factory=list)
+    quality_domains: list[str] = field(default_factory=list)
+    quality_sources: list[str] = field(default_factory=list)
+    quality_title_patterns: list[str] = field(default_factory=list)
+
+    def quality_reason(self, source: str, title: str, url: str) -> Optional[str]:
+        """Return a deterministic quality rejection reason, independent of relevance."""
+        source_low = (source or "").lower()
+        url_low = (url or "").lower()
+        if any(value.lower() in source_low for value in self.quality_sources if value):
+            return "content_farm"
+        if any(
+            value.lower() in url_low or value.lower() in source_low
+            for value in self.quality_domains
+            if value
+        ):
+            return "content_farm"
+        if any(
+            re.search(pattern, title or "", re.I)
+            for pattern in self.quality_title_patterns
+            if pattern
+        ):
+            return "content_farm"
+        return None
 
     def is_blocked(self, title: str, content: str) -> bool:
         hay = f"{title or ''}\n{_first_paragraph(content)}"
@@ -167,4 +190,21 @@ def load_relevance(
     block = data.get("blocklist") or {}
     patterns = [str(x) for x in (block.get("patterns") or []) if str(x).strip()]
 
-    return RelevanceLexicon(terms=terms, block_patterns=patterns)
+    quality = data.get("quality") or {}
+    quality_domains = [
+        str(x) for x in (quality.get("domains") or []) if str(x).strip()
+    ]
+    quality_sources = [
+        str(x) for x in (quality.get("sources") or []) if str(x).strip()
+    ]
+    quality_title_patterns = [
+        str(x) for x in (quality.get("title_patterns") or []) if str(x).strip()
+    ]
+
+    return RelevanceLexicon(
+        terms=terms,
+        block_patterns=patterns,
+        quality_domains=quality_domains,
+        quality_sources=quality_sources,
+        quality_title_patterns=quality_title_patterns,
+    )

@@ -112,6 +112,53 @@ def test_blocklist_beats_positive_alias(store):
     )
 
 
+@pytest.mark.parametrize(
+    ("source", "title", "url"),
+    [
+        ("Simply Wall St", "NVIDIA valuation update", "https://simplywall.st/nvda"),
+        ("simplywall.st", "NVIDIA valuation update", "https://example.com/nvda"),
+        ("Zacks", "NVIDIA earnings outlook", "https://example.com/zacks"),
+        ("Motley Fool", "NVIDIA product update", "https://fool.com/nvda"),
+        ("InvestorPlace", "AMD stock outlook", "https://example.com/amd"),
+        ("Yahoo Finance", "Should You Buy NVIDIA Today?", "https://example.com/1"),
+        ("Yahoo Finance", "3 Reasons to Sell AMD", "https://example.com/2"),
+        ("Yahoo Finance", "Is It a Bargain on Earnings?", "https://example.com/3"),
+    ],
+)
+def test_content_farm_quality_rules(source, title, url):
+    lex = load_relevance(watchlist_tickers=["NVDA", "AMD"])
+    assert lex.quality_reason(source, title, url) == "content_farm"
+
+
+def test_skip_relevance_does_not_skip_content_farm_quality(store, monkeypatch):
+    """Per-ticker sources bypass relevance only, never deterministic quality."""
+    store.insert_feed_raw(
+        {
+            "id": "farm1",
+            "fetched_at": "2026-07-12T12:00:00Z",
+            "published_at": "2026-07-12T11:00:00Z",
+            "source": "Motley Fool",
+            "title": "Should You Buy NVIDIA Before Earnings?",
+            "url": "https://fool.com/investing/nvda",
+            "content": "A generic valuation article.",
+            "objects": '["NVDA"]',
+            "batch_date": "2026-07-12",
+            "feed_id": "yahoo_ticker",
+        }
+    )
+    monkeypatch.setattr(
+        "backend.app.services.digest.ai_adapter.complete",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("digest must not call LLM")
+        ),
+    )
+    stats = digest_batch(store, "2026-07-12")
+    assert stats["prescreen_discarded"] == 1
+    assert stats["ok"] == 0
+    assert store.list_feed_cards(batch_date="2026-07-12") == []
+    assert store.list_filtered_items(batch_date="2026-07-12") == []
+
+
 def test_blocklist_visible_via_feed_filtered(client, store, monkeypatch):
     """Only with FEED_PRESCREEN_AUDIT=1 do primary discards enter 查看漏杀."""
     monkeypatch.setenv("FEED_PRESCREEN_AUDIT", "1")
@@ -202,3 +249,6 @@ def test_prescreen_before_dedup_and_raw_discarded(store, monkeypatch):
     assert merge_calls["size"] == 1
     assert store.list_feed_raw("2026-07-12") == []
     assert store.list_filtered_items(batch_date="2026-07-12") == []
+    cards = store.list_feed_cards(batch_date="2026-07-12")
+    assert len(cards) == 1
+    assert cards[0].summary is None
