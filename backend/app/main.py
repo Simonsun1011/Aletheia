@@ -24,6 +24,7 @@ from backend.app.routers import (
     meta,
     notes,
     reviews,
+    tags,
     tickers,
     usage,
     watchlist,
@@ -80,6 +81,7 @@ app.include_router(watchlist.router, prefix="/api")
 app.include_router(tickers.router, prefix="/api")
 app.include_router(changefeed.router, prefix="/api")
 app.include_router(feed.router, prefix="/api")
+app.include_router(tags.router, prefix="/api")
 app.include_router(console.router, prefix="/api")
 app.include_router(glossary.router, prefix="/api")
 app.include_router(meta.router, prefix="/api")

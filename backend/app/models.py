@@ -305,6 +305,16 @@ class FeedCard(BaseModel):
     objects: Optional[str] = None  # JSON array string
     dedup_group: Optional[str] = None
     batch_date: str
+    # CONTRACT-ISSUE: Slice 8 v0.9 mark+comment on cards; not yet in data-model.md
+    marked_at: Optional[str] = None
+    user_comment: Optional[str] = None
+
+
+class FeedCardMarkRequest(BaseModel):
+    """Toggle mark and/or set comment on a feed card (corpus stream, not event)."""
+
+    marked: Optional[bool] = None
+    user_comment: Optional[str] = None
 
 
 class FilteredItem(BaseModel):
@@ -316,6 +326,34 @@ class FilteredItem(BaseModel):
     title: str
     url: str
     batch_date: str
+
+
+# ── Tags (slice 8 / contract v2.1) ───────────────────────────
+
+TagKind = Literal["company", "topic"]
+# CONTRACT-ISSUE: data-model/api-contract still list tags.status as
+# active|proposed|rejected; Slice 8b (DESIGN v0.9) adds 'archived' for
+# company tags when watchlist row is archived. Planning layer should sync.
+TagStatus = Literal["active", "proposed", "rejected", "archived"]
+
+
+class Tag(BaseModel):
+    tag_id: str
+    kind: TagKind
+    display_en: str
+    display_zh: str
+    status: TagStatus
+    created_at: str
+
+
+class TagView(BaseModel):
+    """Tag as attached to a feed card (display helper)."""
+
+    tag_id: str
+    kind: TagKind
+    display_en: str
+    display_zh: str
+    status: TagStatus = "active"
 
 
 # ── Narrative scan (slice 4b) ──────────────────────────────

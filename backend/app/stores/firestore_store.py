@@ -136,8 +136,22 @@ class FirestoreStore(AppStore):
         self._nyi()
 
     def list_feed_cards(
-        self, *, batch_date: Optional[str] = None, object: Optional[str] = None
+        self,
+        *,
+        batch_date: Optional[str] = None,
+        object: Optional[str] = None,
+        days: Optional[int] = None,
+        tag: Optional[str] = None,
     ) -> list[FeedCard]:
+        self._nyi()
+
+    def mark_feed_card(
+        self,
+        card_id: str,
+        *,
+        marked: Optional[bool] = None,
+        user_comment: Optional[str] = None,
+    ) -> FeedCard:
         self._nyi()
 
     def latest_batch_date(self) -> Optional[str]:
@@ -149,6 +163,31 @@ class FirestoreStore(AppStore):
     def list_filtered_items(
         self, *, batch_date: Optional[str] = None
     ) -> list[FilteredItem]:
+        self._nyi()
+
+    # TagStore
+    def upsert_tag(self, tag):
+        self._nyi()
+
+    def get_tag(self, tag_id: str):
+        self._nyi()
+
+    def list_tags(self, *, status=None, kind=None):
+        self._nyi()
+
+    def set_tag_status(self, tag_id: str, status: str):
+        self._nyi()
+
+    def delete_tag(self, tag_id: str) -> None:
+        self._nyi()
+
+    def link_card_tag(self, card_id: str, tag_id: str) -> None:
+        self._nyi()
+
+    def list_card_tags(self, card_id: str):
+        self._nyi()
+
+    def list_tags_for_cards(self, card_ids: list):
         self._nyi()
 
     # NarrativeScanStore

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import { TopNav, Card, Stat, Empty, Skeleton } from "@/components/ui";
 import { toast } from "@/components/toast";
 import { money, num } from "@/lib/format";
@@ -27,6 +27,15 @@ type UsageResponse = {
   by_purpose: AggRow[];
   by_day: AggRow[];
   by_model: AggRow[];
+};
+
+type TagRow = {
+  tag_id: string;
+  kind: string;
+  display_en: string;
+  display_zh: string;
+  status: string;
+  created_at: string;
 };
 
 function UsageTable({ rows, keyLabel }: { rows: AggRow[]; keyLabel: string }) {
@@ -61,6 +70,8 @@ export default function SettingsPage() {
   const [data, setData] = useState<UsageResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [resetBusy, setResetBusy] = useState(false);
+  const [proposed, setProposed] = useState<TagRow[]>([]);
+  const [tagBusy, setTagBusy] = useState(false);
   const glossary = useGlossaryOptional();
 
   const refresh = useCallback(async () => {
@@ -75,9 +86,19 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const refreshProposed = useCallback(async () => {
+    try {
+      const rows = await apiGet<TagRow[]>("/tags?status=proposed");
+      setProposed(rows);
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    }
+  }, []);
+
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    refreshProposed();
+  }, [refresh, refreshProposed]);
 
   const last7 = useMemo(() => {
     if (!data?.by_day?.length) return [];
@@ -118,13 +139,91 @@ export default function SettingsPage() {
     }
   }
 
+  async function onApproveTag(tagId: string) {
+    setTagBusy(true);
+    try {
+      await apiPost(`/tags/${encodeURIComponent(tagId)}/approve`, {});
+      toast.success(`已批准：${tagId}`);
+      await refreshProposed();
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    } finally {
+      setTagBusy(false);
+    }
+  }
+
+  async function onRejectTag(tagId: string) {
+    setTagBusy(true);
+    try {
+      await apiPost(`/tags/${encodeURIComponent(tagId)}/reject`, {});
+      toast.success(`已拒绝：${tagId}`);
+      await refreshProposed();
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    } finally {
+      setTagBusy(false);
+    }
+  }
+
   return (
     <main>
       <TopNav />
-      <h1>设置 · 用量</h1>
+      <h1>设置</h1>
       <p className="page-intro">
-        LLM 用量与成本（本月 UTC）。预算硬约束：基础设施月费 ≤ $10。
+        标签人审、术语标记、LLM 用量（本月 UTC）。预算硬约束：基础设施月费 ≤ $10。
       </p>
+
+      <Card title="待审标签（AI 建议）">
+        <p className="muted" style={{ marginBottom: "var(--s3)" }}>
+          digest 提出的新主题标签默认不生效；批准后可作筛选项，拒绝后丢弃。
+        </p>
+        {proposed.length === 0 ? (
+          <Empty>暂无待审标签。</Empty>
+        ) : (
+          <ul className="item-list">
+            {proposed.map((t) => (
+              <li key={t.tag_id} className="item">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <strong>{t.display_en}</strong>
+                    {t.display_zh !== t.display_en && (
+                      <span className="muted"> · {t.display_zh}</span>
+                    )}
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {t.tag_id} · {t.created_at}
+                    </div>
+                  </div>
+                  <div className="actions" style={{ margin: 0 }}>
+                    <button
+                      type="button"
+                      className="btn-small"
+                      disabled={tagBusy}
+                      onClick={() => onApproveTag(t.tag_id)}
+                    >
+                      批准
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary btn-small"
+                      disabled={tagBusy}
+                      onClick={() => onRejectTag(t.tag_id)}
+                    >
+                      拒绝
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card title="术语标记">
         <p className="muted" style={{ marginBottom: "var(--s3)" }}>
@@ -163,7 +262,10 @@ export default function SettingsPage() {
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 600 }}>{t.term}</div>
                         {t.one_liner && (
-                          <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>
+                          <p
+                            className="muted"
+                            style={{ margin: "4px 0 0", fontSize: 13 }}
+                          >
                             {t.one_liner}
                           </p>
                         )}

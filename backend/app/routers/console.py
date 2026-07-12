@@ -27,8 +27,12 @@ def get_console(
     store: StoreDep,
     amount: float = Query(5000, gt=0),
     window: int = Query(5, ge=1, le=20),
+    live: bool = Query(
+        False,
+        description="If true, also hit yfinance for VIX/10Y/fundamentals (slower).",
+    ),
 ):
-    return build_console(store, symbol, amount=amount, window=window)
+    return build_console(store, symbol, amount=amount, window=window, live=live)
 
 
 @router.post("/{symbol}/narrative-scan")

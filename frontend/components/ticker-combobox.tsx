@@ -3,6 +3,7 @@
 import {
   KeyboardEvent,
   MouseEvent as ReactMouseEvent,
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -10,12 +11,12 @@ import {
   useState,
 } from "react";
 import {
-  addTicker,
-  loadTickers,
-  removeTicker,
-  resetTickers,
+  addWatchlistTicker,
+  archiveWatchlistTicker,
+  fetchWatchlistTickers,
   TickerOption,
 } from "@/lib/tickers";
+import { toast } from "@/components/toast";
 
 type Props = {
   id?: string;
@@ -36,14 +37,24 @@ export function TickerCombobox({
   const inputId = id ?? autoId;
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [tickers, setTickers] = useState<TickerOption[]>(DEFAULT_SAFE);
+  const [tickers, setTickers] = useState<TickerOption[]>([]);
+  const [busy, setBusy] = useState(false);
   const [highlight, setHighlight] = useState(0);
   /** 点 ▾ 展开时看全表；在输入框打字时才按关键字过滤 */
   const [filterActive, setFilterActive] = useState(false);
 
-  useEffect(() => {
-    setTickers(loadTickers());
+  const refresh = useCallback(async () => {
+    try {
+      const list = await fetchWatchlistTickers();
+      setTickers(list);
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    }
   }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,20 +84,37 @@ export function TickerCombobox({
     setOpen(false);
   }
 
-  function onAdd() {
-    const next = addTicker(tickers, value);
-    setTickers(next);
-    onChange(value.trim().toUpperCase());
+  async function onAdd() {
+    setBusy(true);
+    try {
+      const next = await addWatchlistTicker(value);
+      setTickers(next);
+      onChange(value.trim().toUpperCase());
+      toast.success(`已加入关注：${value.trim().toUpperCase()}`);
+    } catch (e) {
+      toast.error(String((e as Error).message ?? e));
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function onRemove(sym: string, e: ReactMouseEvent) {
+  async function onRemove(sym: string, e: ReactMouseEvent) {
     e.stopPropagation();
     e.preventDefault();
-    setTickers(removeTicker(tickers, sym));
-  }
-
-  function onReset() {
-    setTickers(resetTickers());
+    setBusy(true);
+    try {
+      const next = await archiveWatchlistTicker(
+        sym,
+        "archived from ticker combobox"
+      );
+      setTickers(next);
+      if (value.toUpperCase() === sym) onChange("");
+      toast.success(`已归档：${sym}`);
+    } catch (err) {
+      toast.error(String((err as Error).message ?? err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -146,7 +174,9 @@ export function TickerCombobox({
       {open && (
         <div className="ticker-combo-menu" role="listbox">
           {filtered.length === 0 ? (
-            <div className="ticker-combo-empty">无匹配标的</div>
+            <div className="ticker-combo-empty">
+              {busy ? "加载中…" : "无匹配标的（可输入后加入关注）"}
+            </div>
           ) : (
             filtered.map((t, i) => (
               <div
@@ -170,8 +200,9 @@ export function TickerCombobox({
                 <button
                   type="button"
                   className="ticker-combo-del"
-                  aria-label={`删除 ${t.symbol}`}
-                  title="从列表删除"
+                  aria-label={`归档 ${t.symbol}`}
+                  title="从关注列表归档（非硬删）"
+                  disabled={busy}
                   onMouseDown={(e) => onRemove(t.symbol, e)}
                 >
                   ×
@@ -181,18 +212,23 @@ export function TickerCombobox({
           )}
           <div className="ticker-combo-footer">
             {canAdd && (
-              <button type="button" onMouseDown={(e) => { e.preventDefault(); onAdd(); }}>
-                加入列表：{value.trim().toUpperCase()}
+              <button
+                type="button"
+                disabled={busy}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onAdd();
+                }}
+              >
+                加入关注：{value.trim().toUpperCase()}
               </button>
             )}
-            <button type="button" onMouseDown={(e) => { e.preventDefault(); onReset(); }}>
-              恢复默认（AI 科技 + 上游）
-            </button>
+            <span className="muted" style={{ fontSize: 11, padding: "4px 8px" }}>
+              来源：watchlist（单一权威）
+            </span>
           </div>
         </div>
       )}
     </div>
   );
 }
-
-const DEFAULT_SAFE: TickerOption[] = [];

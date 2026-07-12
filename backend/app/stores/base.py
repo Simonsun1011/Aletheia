@@ -19,6 +19,7 @@ from backend.app.models import (
     NoteCreate,
     PositionRow,
     QuickNote,
+    Tag,
     WatchlistArchive,
     WatchlistCreate,
     WatchlistItem,
@@ -122,8 +123,23 @@ class FeedStore(ABC):
 
     @abstractmethod
     def list_feed_cards(
-        self, *, batch_date: Optional[str] = None, object: Optional[str] = None
+        self,
+        *,
+        batch_date: Optional[str] = None,
+        object: Optional[str] = None,
+        days: Optional[int] = None,
+        tag: Optional[str] = None,
     ) -> list[FeedCard]:
+        ...
+
+    @abstractmethod
+    def mark_feed_card(
+        self,
+        card_id: str,
+        *,
+        marked: Optional[bool] = None,
+        user_comment: Optional[str] = None,
+    ) -> FeedCard:
         ...
 
     @abstractmethod
@@ -138,6 +154,48 @@ class FeedStore(ABC):
     def list_filtered_items(
         self, *, batch_date: Optional[str] = None
     ) -> list[FilteredItem]:
+        ...
+
+
+class TagStore(ABC):
+    """Controlled tag registry + card_tags (slice 8 / contract v2.1)."""
+
+    @abstractmethod
+    def upsert_tag(self, tag: Tag) -> Tag:
+        ...
+
+    @abstractmethod
+    def get_tag(self, tag_id: str) -> Optional[Tag]:
+        ...
+
+    @abstractmethod
+    def list_tags(
+        self,
+        *,
+        status: Optional[str] = None,
+        kind: Optional[str] = None,
+    ) -> list[Tag]:
+        ...
+
+    @abstractmethod
+    def set_tag_status(self, tag_id: str, status: str) -> Tag:
+        ...
+
+    @abstractmethod
+    def delete_tag(self, tag_id: str) -> None:
+        """Remove tag row + card_tags links (seed retirement only; not user reject)."""
+        ...
+
+    @abstractmethod
+    def link_card_tag(self, card_id: str, tag_id: str) -> None:
+        ...
+
+    @abstractmethod
+    def list_card_tags(self, card_id: str) -> list[Tag]:
+        ...
+
+    @abstractmethod
+    def list_tags_for_cards(self, card_ids: list[str]) -> dict[str, list[Tag]]:
         ...
 
 
@@ -220,6 +278,7 @@ class AppStore(
     WatchlistStore,
     EventStore,
     FeedStore,
+    TagStore,
     NarrativeScanStore,
     LlmUsageStore,
     ExecutionStore,

@@ -9,6 +9,10 @@ from typing import Optional
 from ulid import ULID
 
 from backend.app.feed.config import load_feeds
+from backend.app.feed.language import (
+    is_translated_from_english,
+    language_allowed,
+)
 from backend.app.feed.relevance import RelevanceLexicon, load_relevance
 from backend.app.models import FeedCard, FilteredItem
 from backend.app.stores.base import AppStore
@@ -38,6 +42,16 @@ def source_skips_relevance(source: Optional[str]) -> bool:
 
 def card_is_relevant(card: FeedCard, lexicon: RelevanceLexicon) -> bool:
     """True if card should appear in the briefing."""
+    body = card.summary or ""
+    # Language: drop Romance/etc.; drop EN title with JA/ZH summary (translated)
+    ok_lang, _ = language_allowed(card.title, body)
+    if not ok_lang:
+        return False
+    if is_translated_from_english(card.title, body):
+        return False
+    # Slice 3c: blocklist applies even to skip_relevance / object-linked cards
+    if lexicon.is_blocked(card.title, body):
+        return False
     if source_skips_relevance(card.source):
         return True
     try:
@@ -47,7 +61,6 @@ def card_is_relevant(card: FeedCard, lexicon: RelevanceLexicon) -> bool:
     if objs:
         # already linked to tickers at digest time
         return True
-    body = card.summary or ""
     hit, _ = lexicon.is_relevant(card.title, body)
     return hit
 

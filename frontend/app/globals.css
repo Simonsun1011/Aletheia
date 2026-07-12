@@ -485,6 +485,21 @@ p {
   margin-left: 4px;
 }
 
+.chip.chip-active,
+button.chip-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.chip.chip-warn {
+  background: var(--warn-bg, #f5e6c8);
+  color: var(--warn, #8a5a00);
+}
+
+.feed-card-unclassified {
+  outline: 1px dashed var(--warn, #8a5a00);
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;

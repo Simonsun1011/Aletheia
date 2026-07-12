@@ -59,10 +59,15 @@ async function parseError(res: Response): Promise<string> {
   }
 }
 
-function friendlyFetchError(err: unknown): Error {
+function friendlyFetchError(err: unknown, kind: "read" | "llm" = "read"): Error {
   if (err instanceof DOMException && err.name === "TimeoutError") {
+    if (kind === "llm") {
+      return new Error(
+        "请求超时：扫描等 AI 调用可能需数十秒；请稍后重试，并确认后端在跑"
+      );
+    }
     return new Error(
-      "请求超时：扫描等 AI 调用可能需数十秒；请稍后重试，并确认后端在跑"
+      "读取超时：默认应秒级返回。若正在「生成简报」，可先停止生成或稍后重试"
     );
   }
   if (err instanceof TypeError) {
@@ -82,7 +87,7 @@ export async function apiGet<T>(path: string): Promise<T> {
     if (!res.ok) throw new Error(await parseError(res));
     return res.json();
   } catch (err) {
-    throw friendlyFetchError(err);
+    throw friendlyFetchError(err, "read");
   }
 }
 
@@ -106,7 +111,7 @@ export async function apiPost<T>(
     if (!res.ok) throw new Error(await parseError(res));
     return res.json();
   } catch (err) {
-    throw friendlyFetchError(err);
+    throw friendlyFetchError(err, "read");
   }
 }
 
@@ -123,11 +128,27 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     if (!res.ok) throw new Error(await parseError(res));
     return res.json();
   } catch (err) {
-    throw friendlyFetchError(err);
+    throw friendlyFetchError(err, "read");
   }
 }
 
 /** LLM 交互（扫描 / promote 等）— 更长超时 */
 export async function apiPostLlm<T>(path: string, body: unknown): Promise<T> {
-  return apiPost<T>(path, body, { timeoutMs: LLM_FETCH_TIMEOUT_MS });
+  try {
+    const res = await fetch(
+      `${API_BASE}${path}`,
+      withTimeout(
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+        LLM_FETCH_TIMEOUT_MS
+      )
+    );
+    if (!res.ok) throw new Error(await parseError(res));
+    return res.json();
+  } catch (err) {
+    throw friendlyFetchError(err, "llm");
+  }
 }

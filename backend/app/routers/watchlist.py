@@ -14,6 +14,7 @@ from backend.app.models import (
     WatchlistResponse,
     WatchlistTierUpdate,
 )
+from backend.app.services.tags import seed_default_watchlist_if_empty
 
 router = APIRouter(prefix="/watchlist", tags=["watchlist"])
 
@@ -22,6 +23,8 @@ router = APIRouter(prefix="/watchlist", tags=["watchlist"])
 def get_watchlist(
     store: StoreDep, tier: Optional[str] = None
 ) -> WatchlistResponse:
+    # Slice 8b: first-run empty DB → one-time DEFAULT seed (idempotent)
+    seed_default_watchlist_if_empty(store)
     return store.list_watchlist(tier=tier)
 
 

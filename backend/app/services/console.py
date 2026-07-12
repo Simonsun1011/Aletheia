@@ -82,6 +82,26 @@ def _qqq_trend_20d(market_db: Path) -> Optional[float]:
     return float(c.iloc[-1] / c.iloc[-21] - 1)
 
 
+def fetch_macro_local(market_db: Path) -> tuple[Optional[dict], list[str]]:
+    """Local-only macro: QQQ from market.db; no yfinance (fast page loads)."""
+    warnings: list[str] = [
+        "VIX/10Y 未联网拉取（本地模式）；需要时可加 ?live=1"
+    ]
+    out: dict[str, Any] = {
+        "vix": None,
+        "yield_10y": None,
+        "qqq_chg_20d": None,
+    }
+    qqq = _qqq_trend_20d(market_db)
+    if qqq is None:
+        warnings.append("QQQ 20d trend unavailable (need local prices)")
+    else:
+        out["qqq_chg_20d"] = qqq
+    if out["qqq_chg_20d"] is None:
+        return None, warnings
+    return out, warnings
+
+
 def fetch_macro(market_db: Path) -> tuple[Optional[dict], list[str]]:
     warnings: list[str] = []
     out: dict[str, Any] = {
@@ -190,13 +210,7 @@ def fetch_narrative(store: AppStore, symbol: str, limit: int = 5) -> dict[str, A
     events_all = store.list_confirmed_events(object=symbol)
     events = _pick(events_all, lambda e: _parse_day(e.event_date or e.created_at))
 
-    cards_all = store.list_feed_cards(object=symbol)
-    if not cards_all:
-        cards_all = [
-            c
-            for c in store.list_feed_cards()
-            if symbol.upper() in (c.objects or "").upper()
-        ]
+    cards_all = store.list_feed_cards(object=symbol, days=90)
     cards = _pick(
         cards_all, lambda c: _parse_day(c.published_at or c.fetched_at or c.batch_date)
     )
@@ -243,6 +257,7 @@ def build_console(
     *,
     amount: float = 5000.0,
     window: int = 5,
+    live: bool = False,
     settings: Optional[Settings] = None,
     macro_fn: Optional[Callable[..., Any]] = None,
     fundamental_fn: Optional[Callable[..., Any]] = None,
@@ -252,15 +267,29 @@ def build_console(
     warnings: list[str] = []
     as_of = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Technical/plan need local bars; fetch on demand so any US ticker works
-    # without a prior jobs run. Other panels stay independent if this fails.
+    # Technical/plan need local bars; fetch on demand only when thin.
     try:
         warnings.extend(ensure_local_market_data(settings.market_db_path, symbol))
     except Exception as e:
         warnings.append(f"market ensure failed: {e}")
 
-    macro_fn = macro_fn or fetch_macro
-    fundamental_fn = fundamental_fn or fetch_fundamental
+    if live:
+        macro_fn = macro_fn or fetch_macro
+        fundamental_fn = fundamental_fn or fetch_fundamental
+    else:
+        # Default: local DB only — page open must not wait on yfinance.
+        macro_fn = macro_fn or fetch_macro_local
+        if fundamental_fn is None:
+            fundamental_fn = lambda _sym: (
+                {
+                    "eps_revision_note": "开源数据源无此数据",
+                    "forward_eps": None,
+                    "forward_pe": None,
+                    "recommendation_mean": None,
+                    "earnings_date": None,
+                },
+                ["基本面未联网（本地模式）；需要时可加 ?live=1"],
+            )
 
     try:
         macro, w = macro_fn(settings.market_db_path)

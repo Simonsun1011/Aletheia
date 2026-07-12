@@ -5,13 +5,11 @@ import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useMemo } from "react";
 
 /* ---------- 顶部导航（下划线 · design-language §04） ---------- */
-/* 信息流置首：每日必看入口 */
+/* Slice 8：信息流 | 操作台 | 判断与复盘 | 设置 */
 const NAV = [
   { href: "/feed", label: "信息流" },
-  { href: "/", label: "判断日志" },
   { href: "/console", label: "操作台" },
-  { href: "/reviews", label: "复盘" },
-  { href: "/reviews/calibration", label: "校准" },
+  { href: "/judgments", label: "判断与复盘" },
   { href: "/settings", label: "设置" },
 ];
 
@@ -36,7 +34,10 @@ export function TopNav() {
         <div className="topnav-links">
           {NAV.map((n) => {
             const active =
-              n.href === "/" ? pathname === "/" : pathname === n.href;
+              n.href === "/judgments"
+                ? pathname === "/judgments" ||
+                  pathname.startsWith("/reviews")
+                : pathname === n.href || pathname.startsWith(n.href + "/");
             return (
               <Link
                 key={n.href}

@@ -83,10 +83,12 @@ def complete(
     retries: int = 1,
     purpose: Purpose = "other",
     budget_mode: BudgetMode = "interactive",
+    system_override: Optional[str] = None,
 ) -> CompletionResult:
     """
     Call LLM via LiteLLM. Model from MODEL_SUMMARY env unless overridden.
     Records usage via injected callback on success. Batch mode raises if budget exceeded.
+    system_override: if set, use instead of loading prompt_file (prompt_file still recorded as version).
     """
     model_name = model or os.getenv("MODEL_SUMMARY")
     if not model_name:
@@ -104,7 +106,7 @@ def complete(
             else:
                 budget_warning = msg
 
-    system = load_prompt(prompt_file)
+    system = system_override if system_override is not None else load_prompt(prompt_file)
     import litellm
 
     litellm.drop_params = True

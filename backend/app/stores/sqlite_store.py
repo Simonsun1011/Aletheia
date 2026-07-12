@@ -26,6 +26,7 @@ from backend.app.models import (
     NoteCreate,
     PositionRow,
     QuickNote,
+    Tag,
     WatchlistArchive,
     WatchlistCreate,
     WatchlistItem,
@@ -120,7 +121,9 @@ CREATE TABLE IF NOT EXISTS feed_cards (
     summary TEXT,
     objects TEXT,
     dedup_group TEXT,
-    batch_date TEXT NOT NULL
+    batch_date TEXT NOT NULL,
+    marked_at TEXT,
+    user_comment TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_feed_cards_batch ON feed_cards(batch_date);
 CREATE INDEX IF NOT EXISTS idx_feed_cards_dedup ON feed_cards(dedup_group);
@@ -147,6 +150,24 @@ CREATE TABLE IF NOT EXISTS filtered_items (
     batch_date TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_filtered_batch ON filtered_items(batch_date);
+
+CREATE TABLE IF NOT EXISTS tags (
+    tag_id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('company','topic')),
+    display_en TEXT NOT NULL,
+    display_zh TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('active','proposed','rejected','archived')),
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tags_status ON tags(status);
+CREATE INDEX IF NOT EXISTS idx_tags_kind ON tags(kind);
+
+CREATE TABLE IF NOT EXISTS card_tags (
+    card_id TEXT NOT NULL,
+    tag_id TEXT NOT NULL,
+    PRIMARY KEY (card_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_card_tags_tag ON card_tags(tag_id);
 
 CREATE TABLE IF NOT EXISTS narrative_scans (
     id TEXT PRIMARY KEY,
@@ -289,9 +310,17 @@ class SqliteStore(AppStore):
         self.journal_dir = Path(journal_dir)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.journal_dir.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        # timeout: fail fast under contention instead of wedging the ASGI threadpool
+        self._conn = sqlite3.connect(
+            str(self.db_path),
+            check_same_thread=False,
+            timeout=15.0,
+        )
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
+        # WAL: readers (GET /feed) don't block behind digest writers
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA busy_timeout=15000")
         self._cloud_mirror: CloudMirror = cloud_mirror or NullCloudMirror()
 
     def _mirror_push(self, table: str, row: dict[str, Any]) -> None:
@@ -307,7 +336,13 @@ class SqliteStore(AppStore):
         self._migrate_v11_v12()
         self._migrate_v16_v17()
         self._migrate_glossary_aliases()
+        self._migrate_tags_archived_status()
+        self._migrate_feed_card_mark_comment()
         from backend.app.services.glossary import import_glossary_seed
+        from backend.app.services.tags import (
+            seed_topic_tags,
+            sync_watchlist_company_tags,
+        )
 
         try:
             n = import_glossary_seed(self._conn)
@@ -316,6 +351,13 @@ class SqliteStore(AppStore):
         except Exception as e:
             store_log.warning("glossary seed import failed: %s", e)
         self._conn.commit()
+        try:
+            tn = seed_topic_tags(self)
+            cn = sync_watchlist_company_tags(self)
+            if tn or cn:
+                store_log.info("tag seed topics=%s company=%s", tn, cn)
+        except Exception as e:
+            store_log.warning("tag/watchlist seed failed: %s", e)
 
     def _table_sql(self, name: str) -> str:
         row = self._conn.execute(
@@ -412,6 +454,43 @@ class SqliteStore(AppStore):
         }
         if cols and "aliases" not in cols:
             self._conn.execute("ALTER TABLE glossary ADD COLUMN aliases TEXT")
+
+    def _migrate_tags_archived_status(self) -> None:
+        """Slice 8b: tags.status CHECK adds 'archived' (company tags on watchlist archive)."""
+        tsql = self._table_sql("tags")
+        if not tsql or "'archived'" in tsql:
+            return
+        self._conn.executescript(
+            """
+            ALTER TABLE tags RENAME TO tags_old;
+            CREATE TABLE tags (
+                tag_id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL CHECK (kind IN ('company','topic')),
+                display_en TEXT NOT NULL,
+                display_zh TEXT NOT NULL,
+                status TEXT NOT NULL CHECK (status IN ('active','proposed','rejected','archived')),
+                created_at TEXT NOT NULL
+            );
+            INSERT INTO tags (tag_id, kind, display_en, display_zh, status, created_at)
+            SELECT tag_id, kind, display_en, display_zh, status, created_at FROM tags_old;
+            DROP TABLE tags_old;
+            CREATE INDEX IF NOT EXISTS idx_tags_status ON tags(status);
+            CREATE INDEX IF NOT EXISTS idx_tags_kind ON tags(kind);
+            """
+        )
+
+    def _migrate_feed_card_mark_comment(self) -> None:
+        """Slice 8 v0.9: feed_cards.marked_at / user_comment (corpus mark, not event)."""
+        cols = {
+            r[1]
+            for r in self._conn.execute("PRAGMA table_info(feed_cards)").fetchall()
+        }
+        if not cols:
+            return
+        if "marked_at" not in cols:
+            self._conn.execute("ALTER TABLE feed_cards ADD COLUMN marked_at TEXT")
+        if "user_comment" not in cols:
+            self._conn.execute("ALTER TABLE feed_cards ADD COLUMN user_comment TEXT")
 
     def close(self) -> None:
         self._conn.close()
@@ -706,9 +785,49 @@ class SqliteStore(AppStore):
             shadow=[i for i in items if i.status == "shadow"],
         )
 
+    def watchlist_has_any_row(self) -> bool:
+        """True if any watchlist row exists (any status). Used by empty-seed guard."""
+        row = self._conn.execute("SELECT 1 FROM watchlist LIMIT 1").fetchone()
+        return row is not None
+
     def add_watchlist(self, body: WatchlistCreate) -> WatchlistItem:
+        ticker = body.ticker.upper()
+        existing = self._conn.execute(
+            "SELECT * FROM watchlist WHERE ticker = ?", (ticker,)
+        ).fetchone()
+        if existing is not None:
+            # Re-activate archived/shadow rows instead of hard-failing on PK
+            self._conn.execute(
+                """
+                UPDATE watchlist
+                SET status = 'active',
+                    add_reason = ?,
+                    tier = ?,
+                    archived_at = NULL,
+                    archive_reason = NULL
+                WHERE ticker = ?
+                """,
+                (body.add_reason, body.tier, ticker),
+            )
+            self._conn.commit()
+            row = self._conn.execute(
+                "SELECT * FROM watchlist WHERE ticker = ?", (ticker,)
+            ).fetchone()
+            d = dict(row)
+            if d.get("tier") is None:
+                d["tier"] = "base"
+            item = WatchlistItem(**d)
+            self._mirror_push("watchlist", item.model_dump())
+            try:
+                from backend.app.services.tags import ensure_company_tag
+
+                ensure_company_tag(self, item.ticker)
+            except Exception:
+                pass
+            return item
+
         item = WatchlistItem(
-            ticker=body.ticker.upper(),
+            ticker=ticker,
             added_at=_now_iso(),
             add_reason=body.add_reason,
             status="active",
@@ -725,6 +844,12 @@ class SqliteStore(AppStore):
         )
         self._conn.commit()
         self._mirror_push("watchlist", item.model_dump())
+        try:
+            from backend.app.services.tags import ensure_company_tag
+
+            ensure_company_tag(self, item.ticker)
+        except Exception:
+            pass
         return item
 
     def archive_watchlist(self, ticker: str, body: WatchlistArchive) -> WatchlistItem:
@@ -745,13 +870,21 @@ class SqliteStore(AppStore):
             (archived_at, body.archive_reason, ticker),
         )
         self._conn.commit()
+        try:
+            from backend.app.services.tags import archive_company_tag
+
+            archive_company_tag(self, ticker)
+        except Exception as e:
+            store_log.warning("archive company tag failed ticker=%s: %s", ticker, e)
         updated = self._conn.execute(
             "SELECT * FROM watchlist WHERE ticker = ?", (ticker,)
         ).fetchone()
         d = dict(updated)
         if d.get("tier") is None:
             d["tier"] = "base"
-        return WatchlistItem(**d)
+        item = WatchlistItem(**d)
+        self._mirror_push("watchlist", item.model_dump())
+        return item
 
     def set_watchlist_tier(self, ticker: str, tier: str) -> WatchlistItem:
         ticker = ticker.upper()
@@ -849,21 +982,52 @@ class SqliteStore(AppStore):
             """
             INSERT INTO feed_cards (
                 id, fetched_at, published_at, source, title, url, summary,
-                objects, dedup_group, batch_date
+                objects, dedup_group, batch_date, marked_at, user_comment
             ) VALUES (
                 :id, :fetched_at, :published_at, :source, :title, :url, :summary,
-                :objects, :dedup_group, :batch_date
+                :objects, :dedup_group, :batch_date, :marked_at, :user_comment
             )
             ON CONFLICT(id) DO UPDATE SET
                 summary=excluded.summary,
                 objects=excluded.objects,
                 url=excluded.url,
-                source=excluded.source
+                source=excluded.source,
+                marked_at=COALESCE(excluded.marked_at, feed_cards.marked_at),
+                user_comment=COALESCE(excluded.user_comment, feed_cards.user_comment)
             """,
             row,
         )
         self._conn.commit()
         return card
+
+    def mark_feed_card(
+        self,
+        card_id: str,
+        *,
+        marked: Optional[bool] = None,
+        user_comment: Optional[str] = None,
+    ) -> FeedCard:
+        card = self.get_feed_card(card_id)
+        if card is None:
+            raise KeyError(card_id)
+        new_marked_at = card.marked_at
+        if marked is True:
+            new_marked_at = _now_iso()
+        elif marked is False:
+            new_marked_at = None
+        new_comment = card.user_comment if user_comment is None else user_comment
+        self._conn.execute(
+            """
+            UPDATE feed_cards
+            SET marked_at = ?, user_comment = ?
+            WHERE id = ?
+            """,
+            (new_marked_at, new_comment, card_id),
+        )
+        self._conn.commit()
+        updated = self.get_feed_card(card_id)
+        assert updated is not None
+        return updated
 
     def get_feed_card(self, card_id: str) -> Optional[FeedCard]:
         row = self._conn.execute(
@@ -872,17 +1036,43 @@ class SqliteStore(AppStore):
         return FeedCard(**dict(row)) if row else None
 
     def delete_feed_card(self, card_id: str) -> None:
+        self._conn.execute("DELETE FROM card_tags WHERE card_id = ?", (card_id,))
         self._conn.execute("DELETE FROM feed_cards WHERE id = ?", (card_id,))
         self._conn.commit()
 
     def list_feed_cards(
-        self, *, batch_date: Optional[str] = None, object: Optional[str] = None
+        self,
+        *,
+        batch_date: Optional[str] = None,
+        object: Optional[str] = None,
+        days: Optional[int] = None,
+        tag: Optional[str] = None,
     ) -> list[FeedCard]:
-        date = batch_date or self.latest_batch_date()
-        if date is None:
-            return []
-        sql = "SELECT * FROM feed_cards WHERE batch_date = ?"
-        params: list[Any] = [date]
+        """days=1 or None → latest/batch_date semantics; days>1 → published_at/fetched_at window."""
+        params: list[Any] = []
+        if days is not None and days > 1:
+            cutoff = (
+                datetime.now(timezone.utc) - timedelta(days=days)
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+            sql = (
+                "SELECT * FROM feed_cards WHERE "
+                "COALESCE(published_at, fetched_at) >= ?"
+            )
+            params.append(cutoff)
+        else:
+            date = batch_date or self.latest_batch_date()
+            if date is None:
+                return []
+            sql = "SELECT * FROM feed_cards WHERE batch_date = ?"
+            params.append(date)
+
+        if tag:
+            sql += (
+                " AND id IN (SELECT card_id FROM card_tags WHERE tag_id = ?)"
+            )
+            params.append(tag)
+
+        sql += " ORDER BY COALESCE(published_at, fetched_at) DESC, id DESC"
         rows = [FeedCard(**dict(r)) for r in self._conn.execute(sql, params).fetchall()]
         if object:
             obj = object.upper()
@@ -896,6 +1086,110 @@ class SqliteStore(AppStore):
                     filtered.append(c)
             return filtered
         return rows
+
+    # ── TagStore ───────────────────────────────────────────
+
+    def upsert_tag(self, tag: Tag) -> Tag:
+        row = tag.model_dump()
+        self._conn.execute(
+            """
+            INSERT INTO tags (
+                tag_id, kind, display_en, display_zh, status, created_at
+            ) VALUES (
+                :tag_id, :kind, :display_en, :display_zh, :status, :created_at
+            )
+            ON CONFLICT(tag_id) DO UPDATE SET
+                kind=excluded.kind,
+                display_en=excluded.display_en,
+                display_zh=excluded.display_zh,
+                status=excluded.status
+            """,
+            row,
+        )
+        self._conn.commit()
+        return tag
+
+    def get_tag(self, tag_id: str) -> Optional[Tag]:
+        row = self._conn.execute(
+            "SELECT * FROM tags WHERE tag_id = ?", (tag_id,)
+        ).fetchone()
+        return Tag(**dict(row)) if row else None
+
+    def list_tags(
+        self,
+        *,
+        status: Optional[str] = None,
+        kind: Optional[str] = None,
+    ) -> list[Tag]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        if kind:
+            clauses.append("kind = ?")
+            params.append(kind)
+        sql = "SELECT * FROM tags"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY kind ASC, tag_id ASC"
+        return [Tag(**dict(r)) for r in self._conn.execute(sql, params).fetchall()]
+
+    def set_tag_status(self, tag_id: str, status: str) -> Tag:
+        cur = self._conn.execute(
+            "UPDATE tags SET status = ? WHERE tag_id = ?",
+            (status, tag_id),
+        )
+        if cur.rowcount == 0:
+            raise KeyError(tag_id)
+        self._conn.commit()
+        tag = self.get_tag(tag_id)
+        assert tag is not None
+        return tag
+
+    def delete_tag(self, tag_id: str) -> None:
+        self._conn.execute("DELETE FROM card_tags WHERE tag_id = ?", (tag_id,))
+        self._conn.execute("DELETE FROM tags WHERE tag_id = ?", (tag_id,))
+        self._conn.commit()
+
+    def link_card_tag(self, card_id: str, tag_id: str) -> None:
+        self._conn.execute(
+            "INSERT OR IGNORE INTO card_tags (card_id, tag_id) VALUES (?, ?)",
+            (card_id, tag_id),
+        )
+        self._conn.commit()
+
+    def list_card_tags(self, card_id: str) -> list[Tag]:
+        rows = self._conn.execute(
+            """
+            SELECT t.* FROM tags t
+            JOIN card_tags ct ON ct.tag_id = t.tag_id
+            WHERE ct.card_id = ?
+            ORDER BY t.kind ASC, t.tag_id ASC
+            """,
+            (card_id,),
+        ).fetchall()
+        return [Tag(**dict(r)) for r in rows]
+
+    def list_tags_for_cards(self, card_ids: list[str]) -> dict[str, list[Tag]]:
+        out: dict[str, list[Tag]] = {cid: [] for cid in card_ids}
+        if not card_ids:
+            return out
+        placeholders = ",".join("?" * len(card_ids))
+        rows = self._conn.execute(
+            f"""
+            SELECT ct.card_id, t.* FROM card_tags ct
+            JOIN tags t ON t.tag_id = ct.tag_id
+            WHERE ct.card_id IN ({placeholders})
+            ORDER BY t.kind ASC, t.tag_id ASC
+            """,
+            card_ids,
+        ).fetchall()
+        for r in rows:
+            d = dict(r)
+            cid = d.pop("card_id")
+            out.setdefault(cid, []).append(Tag(**d))
+        return out
 
     def latest_batch_date(self) -> Optional[str]:
         row = self._conn.execute(

@@ -22,20 +22,22 @@ url = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&compa
 enabled = true
 skip_relevance = true
 
-# per-ticker templates: {ticker} 由 watchlist focus/base 填充
+# per-ticker templates: {ticker} 由 watchlist focus+base 填充（Slice 3c：放宽自 focus）
 [[feeds]]
 id = "yahoo_ticker"
 name = "Yahoo Finance"
 type = "rss_template"
 url = "https://finance.yahoo.com/rss/headline?s={ticker}"
 enabled = true
-tier = "focus"
+tier = "base"
 skip_relevance = true
 
 [[feeds]]
 id = "google_news_ticker"
 name = "Google News"
 type = "rss_template"
-url = "https://news.google.com/rss/search?q={ticker}+stock&hl=en-US&gl=US&ceid=US:en"
+# query：ticker + AI/earnings/capex/stock，提高贴题召回（Slice 3c）
+url = "https://news.google.com/rss/search?q={ticker}+(AI+OR+earnings+OR+capex+OR+stock)&hl=en-US&gl=US&ceid=US:en"
 enabled = true
-tier = "focus"
+tier = "base"
+skip_relevance = true

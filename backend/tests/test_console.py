@@ -221,11 +221,12 @@ def test_console_http_and_judgment_with_plan(client, store, monkeypatch, tmp_pat
     )
     monkeypatch.setattr(
         "backend.app.routers.console.build_console",
-        lambda store, symbol, amount=5000, window=5: build_console(
+        lambda store, symbol, amount=5000, window=5, live=False: build_console(
             store,
             symbol,
             amount=amount,
             window=window,
+            live=live,
             settings=settings,
             macro_fn=lambda _: ({"vix": 14.0, "yield_10y": 4.0, "qqq_chg_20d": 0.02}, []),
             fundamental_fn=lambda _: (

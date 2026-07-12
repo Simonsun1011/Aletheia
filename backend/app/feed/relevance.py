@@ -1,4 +1,4 @@
-"""Deterministic relevance whitelist (Slice 3b)."""
+"""Deterministic relevance whitelist + blocklist (Slice 3b / 3c)."""
 
 from __future__ import annotations
 
@@ -21,14 +21,27 @@ class RelevanceLexicon:
 
     # (term, ticker|None, scope) scope: "title" = aliases; "any" = tickers/themes
     terms: list[tuple[str, Optional[str], str]] = field(default_factory=list)
+    # Slice 3c: negative patterns — substring match on title+body, case-insensitive
+    block_patterns: list[str] = field(default_factory=list)
+
+    def is_blocked(self, title: str, content: str) -> bool:
+        hay = f"{title or ''}\n{_first_paragraph(content)}"
+        low = hay.lower()
+        for pat in self.block_patterns:
+            if pat and pat.lower() in low:
+                return True
+        return False
 
     def is_relevant(self, title: str, content: str) -> tuple[bool, list[str]]:
         """Match title + first paragraph.
 
+        Blocklist wins over positive hits (Slice 3c).
         Company aliases only count in the **title** (avoids summary name-drops
         like "available on Amazon" / "vs Nvidia" falsely keeping noise cards).
         Tickers and theme keywords may match title or body.
         """
+        if self.is_blocked(title, content):
+            return False, []
         head = _first_paragraph(content)
         title_hay = title or ""
         any_hay = f"{title}\n{head}"
@@ -101,4 +114,7 @@ def load_relevance(
         if sym:
             terms.append((sym, sym, "any"))
 
-    return RelevanceLexicon(terms=terms)
+    block = data.get("blocklist") or {}
+    patterns = [str(x) for x in (block.get("patterns") or []) if str(x).strip()]
+
+    return RelevanceLexicon(terms=terms, block_patterns=patterns)

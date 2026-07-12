@@ -50,3 +50,20 @@ terms = [
   "光刻",
   "EUV",
 ]
+
+# Slice 3c：负向词表（律所索赔公关等）。命中则不进流，优先于正向命中。
+# 漏杀可走 GET /feed/filtered 复核。
+[blocklist]
+patterns = [
+  "Kahn Swick",
+  "Foti",
+  "Pomerantz",
+  "Rosen Law",
+  "Bragar Eagel",
+  "investigation initiated",
+  "class action",
+  "lead plaintiff",
+  "shareholder alert",
+  "investors who purchased",
+  "reminds investors",
+]
