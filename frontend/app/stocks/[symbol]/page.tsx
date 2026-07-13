@@ -9,6 +9,7 @@ import { toast } from "@/components/toast";
 import { LabeledKvTable } from "@/components/label";
 import { TermRichText } from "@/components/term-rich-text";
 import { dateRelative } from "@/lib/format";
+import { ListPager, usePagedItems } from "@/components/list-pager";
 
 type Snapshot = {
   symbol: string;
@@ -42,6 +43,8 @@ export default function StockSnapshotPage() {
       .then(setEvents)
       .catch(() => setEvents([]));
   }, [symbol]);
+
+  const eventsPage = usePagedItems(events, `${symbol}|${events.length}`);
 
   return (
     <main>
@@ -107,7 +110,7 @@ export default function StockSnapshotPage() {
                   </div>
                   <div className="list-scroll">
                     <ul className="item-list" style={{ padding: "0 20px 16px" }}>
-                      {events.map((ev) => (
+                      {eventsPage.slice.map((ev) => (
                         <li key={ev.id} className="item">
                           <div className="info-row" style={{ marginBottom: 6 }}>
                             <TypeTag type="fact" />
@@ -129,6 +132,14 @@ export default function StockSnapshotPage() {
                         </li>
                       ))}
                     </ul>
+                    <div style={{ padding: "0 20px 16px" }}>
+                      <ListPager
+                        page={eventsPage.page}
+                        pageCount={eventsPage.pageCount}
+                        total={eventsPage.total}
+                        onChange={eventsPage.setPage}
+                      />
+                    </div>
                   </div>
                 </>
               )}

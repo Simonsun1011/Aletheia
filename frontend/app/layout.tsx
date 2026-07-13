@@ -9,6 +9,7 @@ import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
 import { Toaster } from "@/components/toast";
 import { GlossaryProvider } from "@/components/glossary-provider";
+import { BackHomeButton } from "@/components/back-home-button";
 
 export const metadata: Metadata = {
   title: "Aletheia — 判断日志",
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body>
         <GlossaryProvider>
           {children}
+          <BackHomeButton />
           <Toaster />
         </GlossaryProvider>
       </body>

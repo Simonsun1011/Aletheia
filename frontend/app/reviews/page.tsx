@@ -5,6 +5,7 @@ import { apiGet, apiPost, JudgmentChain } from "@/lib/api";
 import { TopNav, Card, Chip, Empty, Skeleton, Modal } from "@/components/ui";
 import { toast } from "@/components/toast";
 import { pctText, signClass, dateRelative } from "@/lib/format";
+import { ListPager, usePagedItems } from "@/components/list-pager";
 
 type SettleDraft = {
   root_id: string;
@@ -55,6 +56,8 @@ export default function ReviewsPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const duePage = usePagedItems(due, due.length);
 
   async function onSettle(rootId: string) {
     setBusy(true);
@@ -110,7 +113,7 @@ export default function ReviewsPage() {
             </div>
             <div className="list-scroll tall">
               <ul className="item-list">
-                {due.map((c) => {
+                {duePage.slice.map((c) => {
               const cur =
                 [...c.entries]
                   .filter((e) => e.kind === "original" || e.kind === "revision")
@@ -141,6 +144,12 @@ export default function ReviewsPage() {
               );
             })}
               </ul>
+              <ListPager
+                page={duePage.page}
+                pageCount={duePage.pageCount}
+                total={duePage.total}
+                onChange={duePage.setPage}
+              />
             </div>
           </>
         )}

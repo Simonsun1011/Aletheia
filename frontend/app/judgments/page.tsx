@@ -7,6 +7,7 @@ import { TickerCombobox } from "@/components/ticker-combobox";
 import { TypeTag } from "@/components/info";
 import { toast } from "@/components/toast";
 import { dateRelative } from "@/lib/format";
+import { ListPager, usePagedItems } from "@/components/list-pager";
 
 type JType = "fact" | "market_reaction" | "causal" | "action";
 
@@ -50,7 +51,7 @@ export default function HomePage() {
     try {
       const [c, n] = await Promise.all([
         apiGet<JudgmentChain[]>("/judgments"),
-        apiGet<QuickNote[]>("/notes?limit=50"),
+        apiGet<QuickNote[]>("/notes?limit=200"),
       ]);
       setChains(c);
       setNotes(n);
@@ -64,6 +65,9 @@ export default function HomePage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const notesPage = usePagedItems(notes, notes.length);
+  const chainsPage = usePagedItems(chains, chains.length);
 
   async function onSubmitJudgment(e: FormEvent) {
     e.preventDefault();
@@ -295,7 +299,7 @@ export default function HomePage() {
             </div>
             <div className="list-scroll short">
               <ul className="item-list">
-                {notes.map((n) => (
+                {notesPage.slice.map((n) => (
                   <li key={n.id} className="item">
                     <div className="muted">
                       {dateRelative(n.created_at)}
@@ -305,6 +309,12 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
+              <ListPager
+                page={notesPage.page}
+                pageCount={notesPage.pageCount}
+                total={notesPage.total}
+                onChange={notesPage.setPage}
+              />
             </div>
           </div>
         )}
@@ -321,7 +331,7 @@ export default function HomePage() {
               <span>共 {chains.length} 条链</span>
             </div>
             <div className="list-scroll tall">
-              {chains.map((chain) => (
+              {chainsPage.slice.map((chain) => (
                 <div key={chain.root_id} className="chain">
                   <div className="chain-meta">
                     <strong style={{ color: "var(--ink)", fontWeight: 600 }}>
@@ -396,6 +406,12 @@ export default function HomePage() {
                   </div>
                 </div>
               ))}
+              <ListPager
+                page={chainsPage.page}
+                pageCount={chainsPage.pageCount}
+                total={chainsPage.total}
+                onChange={chainsPage.setPage}
+              />
             </div>
           </>
         )}

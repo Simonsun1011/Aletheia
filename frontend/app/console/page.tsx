@@ -17,6 +17,7 @@ import {
   clearScanPending,
   isScanPendingToday,
 } from "@/lib/console-session";
+import { ListPager, usePagedItems } from "@/components/list-pager";
 
 type PanelNote = { title: string; body: string } | null;
 
@@ -251,7 +252,7 @@ export default function ConsolePage() {
     const list = await apiGet<JudgmentChain[]>(
       `/judgments?object=${encodeURIComponent(sym)}&origin=console`
     );
-    setChains(list.slice(0, 20));
+    setChains(list);
   }, []);
 
   const refreshPositions = useCallback(async () => {
@@ -538,6 +539,29 @@ export default function ConsolePage() {
   }
 
   const narr = data?.narrative?.data;
+
+  const mineItems = useMemo(() => {
+    const events = (narr?.mine?.events ?? []).map((ev, i) => ({
+      kind: "event" as const,
+      key: ev.id ?? `ev-${i}`,
+      ev,
+    }));
+    const cards = (narr?.mine?.feed_cards ?? []).map((c, i) => ({
+      kind: "card" as const,
+      key: c.id ?? `card-${i}`,
+      c,
+    }));
+    return [...events, ...cards];
+  }, [narr?.mine?.events, narr?.mine?.feed_cards]);
+
+  const minePage = usePagedItems(
+    mineItems,
+    `${data?.symbol ?? ""}|${mineItems.length}`
+  );
+  const chainsPage = usePagedItems(
+    chains,
+    `${data?.symbol ?? ""}|${chains.length}`
+  );
   const ai = narr?.ai_scan?.payload;
   const midItems = useMemo(
     () =>
@@ -754,72 +778,66 @@ export default function ConsolePage() {
                   "经你的信源与筛选（最近5条，优先90天内）"}
               </p>
               <div className="scroll-pane" style={{ marginBottom: "var(--s4)" }}>
-                {(narr?.mine?.events?.length ?? 0) === 0 &&
-                (narr?.mine?.feed_cards?.length ?? 0) === 0 ? (
+                {mineItems.length === 0 ? (
                   <Empty>
                     暂无已确认事件或相关卡片——从信息流卡片记入事件。
                   </Empty>
                 ) : (
                   <>
-                    {(narr?.mine?.events?.length ?? 0) > 0 && (
-                      <>
-                        <div className="muted" style={{ marginBottom: "var(--s2)" }}>
-                          已确认事件
-                        </div>
-                        <ul className="item-list">
-                          {narr!.mine!.events.map((ev, i) => (
-                            <li key={ev.id ?? `ev-${i}`} className="item">
-                              <div className="muted">
-                                {[ev.scope ?? ev.category, ev.event_date]
-                                  .filter(Boolean)
-                                  .join(" · ") || "—"}
-                              </div>
-                              <div>
+                    <ul className="item-list">
+                      {minePage.slice.map((it) =>
+                        it.kind === "event" ? (
+                          <li key={it.key} className="item">
+                            <div className="muted">
+                              {[it.ev.scope ?? it.ev.category, it.ev.event_date]
+                                .filter(Boolean)
+                                .join(" · ") || "—"}
+                            </div>
+                            <div>
+                              <TermRichText
+                                text={it.ev.fact_text ?? "—"}
+                                context={`${data.symbol} 叙事·我的事件`}
+                              />
+                            </div>
+                            {it.ev.source_url && (
+                              <a
+                                href={it.ev.source_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                来源 ↗
+                              </a>
+                            )}
+                          </li>
+                        ) : (
+                          <li key={it.key} className="item">
+                            <div className="muted">
+                              {[it.c.source, dateShort(it.c.published_at)]
+                                .filter(Boolean)
+                                .join(" · ") || "—"}
+                            </div>
+                            <div>{it.c.title ?? "—"}</div>
+                            {it.c.summary && (
+                              <p
+                                className="muted"
+                                style={{ margin: "var(--s1) 0 0" }}
+                              >
                                 <TermRichText
-                                  text={ev.fact_text ?? "—"}
-                                  context={`${data.symbol} 叙事·我的事件`}
+                                  text={it.c.summary}
+                                  context={`${data.symbol} 叙事·信息流`}
                                 />
-                              </div>
-                              {ev.source_url && (
-                                <a href={ev.source_url} target="_blank" rel="noreferrer">
-                                  来源 ↗
-                                </a>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                    {(narr?.mine?.feed_cards?.length ?? 0) > 0 && (
-                      <>
-                        <div
-                          className="muted"
-                          style={{ margin: "var(--s3) 0 var(--s2)" }}
-                        >
-                          信息流卡片
-                        </div>
-                        <ul className="item-list">
-                          {narr!.mine!.feed_cards.map((c, i) => (
-                            <li key={c.id ?? `card-${i}`} className="item">
-                              <div className="muted">
-                                {[c.source, dateShort(c.published_at)]
-                                  .filter(Boolean)
-                                  .join(" · ") || "—"}
-                              </div>
-                              <div>{c.title ?? "—"}</div>
-                              {c.summary && (
-                                <p className="muted" style={{ margin: "var(--s1) 0 0" }}>
-                                  <TermRichText
-                                    text={c.summary}
-                                    context={`${data.symbol} 叙事·信息流`}
-                                  />
-                                </p>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
+                              </p>
+                            )}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                    <ListPager
+                      page={minePage.page}
+                      pageCount={minePage.pageCount}
+                      total={minePage.total}
+                      onChange={minePage.setPage}
+                    />
                   </>
                 )}
               </div>
@@ -1047,11 +1065,11 @@ export default function ConsolePage() {
 
             <Card title="判断记录">
               {chains.length === 0 ? (
-                <Empty>暂无判断——加载标的后显示最近 20 条。</Empty>
+                <Empty>暂无判断——加载标的后显示；超过 20 条分页。</Empty>
               ) : (
                 <div className="list-scroll short" style={{ padding: "0 20px 16px" }}>
                   <ul className="item-list">
-                    {chains.map((c) => {
+                    {chainsPage.slice.map((c) => {
                       const latest =
                         [...c.entries]
                           .reverse()
@@ -1073,6 +1091,12 @@ export default function ConsolePage() {
                       );
                     })}
                   </ul>
+                  <ListPager
+                    page={chainsPage.page}
+                    pageCount={chainsPage.pageCount}
+                    total={chainsPage.total}
+                    onChange={chainsPage.setPage}
+                  />
                 </div>
               )}
             </Card>
