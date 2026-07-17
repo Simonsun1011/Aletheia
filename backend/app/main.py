@@ -8,11 +8,13 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.app.config import get_settings
 from backend.app.logging_setup import get_request_id, setup_logging
-from backend.app.middleware import RequestIdMiddleware
+from backend.app.middleware import RequestIdMiddleware, RequireClientHeaderMiddleware
 from backend.app.routers import (
     changefeed,
     cloud,
@@ -51,12 +53,7 @@ async def lifespan(app: FastAPI):
     store = create_store()
     app.state.store = store
     # v1.8 A4: wire Store into usage module; adapter gets callbacks only (no Store)
-    llm_usage.set_store(store)
-    ai_adapter.configure_usage_hooks(
-        record_usage=llm_usage.record_usage,
-        budget_status=llm_usage.budget_status,
-        assert_batch_budget_allows=llm_usage.assert_batch_budget_allows,
-    )
+    llm_usage.wire_llm_usage(store)
     yield
     ai_adapter.reset_usage_hooks()
     llm_usage.clear_store()
@@ -66,15 +63,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Aletheia", version="0.1.0", lifespan=lifespan)
 
-# RequestId outermost among our middleware so CORS preflight also gets an id
-# when it reaches the app; CORS is added after so it can short-circuit OPTIONS.
+# Last added = outermost. TrustedHost → CORS → client header → request id → routes.
 app.add_middleware(RequestIdMiddleware)
+app.add_middleware(RequireClientHeaderMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["127.0.0.1", "localhost"],
 )
 
 app.include_router(judgments.router, prefix="/api")
@@ -93,6 +94,24 @@ app.include_router(reviews.router, prefix="/api")
 app.include_router(cloud.router, prefix="/api")
 app.include_router(status_router.router, prefix="/api")
 app.include_router(diagnostics.router, prefix="/api")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Flatten to contract §1 envelope (routers raise detail={"error": ...})."""
+    detail = exc.detail
+    if isinstance(detail, dict) and "error" in detail:
+        return JSONResponse(status_code=exc.status_code, content=detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": f"HTTP_{exc.status_code}",
+                "message": str(detail),
+                "detail": {},
+            }
+        },
+    )
 
 
 @app.exception_handler(RequestValidationError)

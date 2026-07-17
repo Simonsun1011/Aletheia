@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
-from fastapi.testclient import TestClient
+from backend.tests.http_client import make_test_client
 
 from backend.app.main import app
 from backend.app.models import ExecutionCreate
@@ -24,7 +24,7 @@ def store(tmp_path):
 @pytest.fixture
 def client(store, monkeypatch):
     monkeypatch.setattr("backend.app.main.create_store", lambda: store)
-    with TestClient(app) as c:
+    with make_test_client() as c:
         app.state.store = store
         yield c
 

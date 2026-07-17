@@ -217,6 +217,7 @@ export default function FeedPage() {
           clearFeedRefreshPending();
           setRefreshing(false);
           setRefreshMsg(null);
+          stopPolling();
         }
       }
     } catch (_e) {
@@ -226,7 +227,7 @@ export default function FeedPage() {
         "后端无响应（轮询失败）— 与「摘要慢」不同，请检查后端或停止生成"
       );
     }
-  }, [onRefreshFinished]);
+  }, [onRefreshFinished, stopPolling]);
 
   const startPolling = useCallback(() => {
     stopPolling();
@@ -374,7 +375,7 @@ export default function FeedPage() {
   async function onPromote(cardId: string) {
     setBusy(true);
     try {
-      const d = await apiPost<EventDraft>(`/feed/${cardId}/promote`, {});
+      const d = await apiPostLlm<EventDraft>(`/feed/${cardId}/promote`, {});
       setDraft(d);
       setScope("company");
       setUserComment("");
@@ -493,7 +494,8 @@ export default function FeedPage() {
     try {
       await apiPost(`/feed/${commentFor.id}/mark`, {
         marked: true,
-        user_comment: commentText.trim() || null,
+        // empty string clears; null would mean "keep" on the server
+        user_comment: commentText.trim(),
         source_lang: commentText.trim() ? sourceLangFor(commentFor) : null,
       });
       setCommentFor(null);
@@ -513,7 +515,7 @@ export default function FeedPage() {
     try {
       await apiPost(`/changefeed/${draft.id}/confirm`, {
         scope,
-        user_comment: userComment.trim() || null,
+        user_comment: userComment.trim(),
       });
       setDraft(null);
       setUserComment("");

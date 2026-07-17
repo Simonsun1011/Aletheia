@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
+from backend.tests.http_client import make_test_client
 
 from backend.app.main import app
 from backend.app.market.db import connect_market_db
@@ -62,7 +62,7 @@ def market_db(tmp_path, monkeypatch):
 @pytest.fixture
 def client(store, market_db, monkeypatch):
     monkeypatch.setattr("backend.app.main.create_store", lambda: store)
-    with TestClient(app) as c:
+    with make_test_client() as c:
         app.state.store = store
         yield c
 

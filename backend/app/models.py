@@ -478,8 +478,10 @@ class ExecutionCreate(BaseModel):
     @classmethod
     def trade_date_iso(cls, v: str) -> str:
         v = (v or "").strip()
-        datetime.strptime(v[:10], "%Y-%m-%d")
-        return v[:10]
+        if "T" in v:
+            v = v.split("T", 1)[0]
+        dt = datetime.strptime(v, "%Y-%m-%d")
+        return dt.date().isoformat()
 
     @field_validator("shares", "price")
     @classmethod

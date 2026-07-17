@@ -19,21 +19,20 @@ node_modules/
 # 可再生数据：SQLite库不进git（app.db可由JSONL重建）
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+.fuse_hidden*
 data/market/
 
-# 隐私数据（DESIGN v0.4，2026-07-12）：仓库将分享给朋友
-# 个人判断/随感/成交（journal JSONL）、买入方案（plans/）、报告（reports/）永不进git
-# 异地备份走 Firestore 免费层（独立切片）
+# 隐私数据（DESIGN v0.4，2026-07-12）
+# 个人判断/随感/成交（journal JSONL）、买入方案、报告永不进任何 git（含私有仓）
+# 判断类数据的异地备份走 Firestore 免费层（独立切片）
 data/journal/*.jsonl
-plans/
-reports/
+data/plans/
+data/reports/
 
-# 设计 / 规划 / 任务书 / 视觉稿（仅本机开发用，不公开）
-DESIGN.md
-CLAUDE.md
-docs/
-.cursor/
-*.dc.html
+# 真相源翻转（2026-07-17）：本仓为私有仓，文档（DESIGN.md/CLAUDE.md/docs//.cursor/）
+# 自此入库跟踪获得版本史与异地备份；公开分享唯一通道是 scripts/publish.sh（净化快照）。
 
 # 日志
 logs/

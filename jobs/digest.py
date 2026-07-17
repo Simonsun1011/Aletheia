@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from backend.app.ai import usage as llm_usage  # noqa: E402
 from backend.app.config import get_settings  # noqa: E402
 from backend.app.logging_setup import setup_logging  # noqa: E402
 from backend.app.services.digest import digest_batch  # noqa: E402
@@ -29,6 +30,7 @@ def main() -> None:
     args = parser.parse_args()
     store = SqliteStore(settings.app_db_path, settings.journal_dir)
     store.init_schema()
+    llm_usage.wire_llm_usage(store)
     try:
         digest_batch(store, args.date)
     finally:

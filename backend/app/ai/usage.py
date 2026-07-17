@@ -49,6 +49,18 @@ def clear_store() -> None:
     _store = None
 
 
+def wire_llm_usage(store: "AppStore") -> None:
+    """Shared by FastAPI lifespan and jobs CLI — set_store + adapter usage hooks."""
+    from backend.app.ai import adapter as ai_adapter
+
+    set_store(store)
+    ai_adapter.configure_usage_hooks(
+        record_usage=record_usage,
+        budget_status=budget_status,
+        assert_batch_budget_allows=assert_batch_budget_allows,
+    )
+
+
 def _require_store() -> "AppStore":
     if _store is None:
         raise RuntimeError(
@@ -77,6 +89,13 @@ def load_prices(path: Optional[Path] = None) -> dict[str, dict[str, float]]:
     return out
 
 
+def _price_key_match(model: str, catalog_key: str) -> bool:
+    """Match exact key, or same bare name after optional provider/ prefix only."""
+    if model == catalog_key:
+        return True
+    return model.split("/", 1)[-1] == catalog_key.split("/", 1)[-1]
+
+
 def estimate_cost_usd(
     model: str,
     tokens_in: Optional[int],
@@ -88,7 +107,7 @@ def estimate_cost_usd(
     row = prices.get(model)
     if row is None:
         for k, v in prices.items():
-            if model.endswith(k) or k.endswith(model) or model in k:
+            if _price_key_match(model, k):
                 row = v
                 break
     if row is None:

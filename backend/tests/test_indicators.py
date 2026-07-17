@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from backend.app.market.indicators import buy_planner_compatible_last_row
-from buy_planner import DEFAULTS, compute_indicators as bp_compute
+from tools.buy_planner import DEFAULTS, compute_indicators as bp_compute
 
 
 def _synthetic_ohlcv(n: int = 260, seed: int = 42) -> pd.DataFrame:

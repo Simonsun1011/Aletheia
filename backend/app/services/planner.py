@@ -16,13 +16,13 @@ import pandas as pd
 from ulid import ULID
 
 from backend.app.config import REPO_ROOT
-from buy_planner import DEFAULTS, build_ladder, compute_indicators
+from tools.buy_planner import DEFAULTS, build_ladder, compute_indicators
 
 log = logging.getLogger("aletheia.jobs")
 
 
-def plans_dir() -> Path:
-    d = REPO_ROOT / "plans"
+def plans_dir(path: Optional[Path] = None) -> Path:
+    d = Path(path) if path is not None else REPO_ROOT / "data" / "plans"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -61,8 +61,9 @@ def build_plan(
     tranches: int = 4,
     earnings_note: str = "未能自动获取，请人工确认",
     save: bool = True,
+    plans_dir_path: Optional[Path] = None,
 ) -> dict[str, Any]:
-    """Build ATR ladder plan; optionally persist JSON under plans/."""
+    """Build ATR ladder plan; optionally persist JSON under data/plans/."""
     ticker = ticker.upper()
     p = dict(DEFAULTS, window_days=window_days, tranches=tranches)
     ind = indicators_from_ohlcv(ohlcv, p)
@@ -104,11 +105,15 @@ def build_plan(
 
     if save:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = plans_dir() / f"{ticker}_{stamp}_{plan_id[-6:]}.json"
+        out_dir = plans_dir(plans_dir_path)
+        path = out_dir / f"{ticker}_{stamp}_{plan_id[-6:]}.json"
         path.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        payload["path"] = str(path.relative_to(REPO_ROOT))
+        try:
+            payload["path"] = str(path.relative_to(REPO_ROOT))
+        except ValueError:
+            payload["path"] = str(path)
         log.info("plan saved ticker=%s id=%s path=%s", ticker, plan_id, payload["path"])
 
     return payload

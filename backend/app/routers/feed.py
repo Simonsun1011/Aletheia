@@ -9,6 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
+from backend.app.ai.adapter import AdapterError
 from backend.app.config import get_settings
 from backend.app.deps import StoreDep
 from backend.app.models import FeedCard, FeedCardMarkRequest, NoteCreate
@@ -345,5 +346,7 @@ def promote(card_id: str, store: StoreDep):
                 }
             },
         )
+    except AdapterError as e:
+        return _error(503, "AI_ERROR", str(e))
     except ChangefeedError as e:
         return _error(409 if e.code == "SUMMARY_REQUIRED" else 422, e.code, e.message, e.detail)

@@ -110,7 +110,7 @@ def test_settle_numbers_no_evaluative_fields(client, store, market_db):
     assert body["sector_etf"] == "SOXX"
     assert body["review_text"] is None
     blob = str(body)
-    for bad in ("正确", "错误", "好差", "建议"):
+    for bad in ("正确", "错误", "好", "差", "建议"):
         assert bad not in blob
     # field names must not be evaluative
     for key in body.keys():

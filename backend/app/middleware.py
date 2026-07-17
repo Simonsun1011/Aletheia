@@ -9,12 +9,16 @@ from __future__ import annotations
 import logging
 import time
 
+from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from ulid import ULID
 
 from backend.app.logging_setup import set_request_id
 
 api_log = logging.getLogger("aletheia.api")
+
+CLIENT_HEADER = b"x-aletheia-client"
+WRITE_METHODS = frozenset({b"POST", b"PATCH", b"DELETE", b"PUT"})
 
 
 class RequestIdMiddleware:
@@ -63,3 +67,42 @@ class RequestIdMiddleware:
             status_code_box[0],
             elapsed_ms,
         )
+
+
+class RequireClientHeaderMiddleware:
+    """Drive-by CSRF soft gate: write methods need X-Aletheia-Client: 1.
+
+    OPTIONS (CORS preflight) is allowed through. GET/HEAD unrestricted.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        method = (scope.get("method") or "GET").encode("ascii").upper()
+        if method == b"OPTIONS" or method not in WRITE_METHODS:
+            await self.app(scope, receive, send)
+            return
+
+        headers = {
+            k.lower(): v for k, v in (scope.get("headers") or [])
+        }
+        if headers.get(CLIENT_HEADER) == b"1":
+            await self.app(scope, receive, send)
+            return
+
+        response = JSONResponse(
+            status_code=403,
+            content={
+                "error": {
+                    "code": "HTTP_403",
+                    "message": "missing X-Aletheia-Client header",
+                    "detail": {},
+                }
+            },
+        )
+        await response(scope, receive, send)

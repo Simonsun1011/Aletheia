@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
+from backend.tests.http_client import make_test_client
 
 from backend.app.main import app
 from backend.app.services import feed_ingest
@@ -42,7 +42,7 @@ def client(store, monkeypatch, tmp_path):
         ),
     )
 
-    with TestClient(app) as c:
+    with make_test_client() as c:
         app.state.store = store
         yield c
 

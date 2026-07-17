@@ -16,7 +16,9 @@ router = APIRouter(prefix="/tickers", tags=["tickers"])
 def get_snapshot(symbol: str) -> TickerSnapshot:
     settings = get_settings()
     # Same on-demand path as console — stock page should not require a prior job.
-    ensure_local_market_data(settings.market_db_path, symbol.upper())
+    ensure_warnings = ensure_local_market_data(
+        settings.market_db_path, symbol.upper()
+    )
     payload = build_snapshot(settings.market_db_path, symbol)
     if payload is None:
         raise HTTPException(
@@ -29,4 +31,5 @@ def get_snapshot(symbol: str) -> TickerSnapshot:
                 }
             },
         )
+    payload["warnings"] = list(ensure_warnings) + list(payload.get("warnings") or [])
     return TickerSnapshot(**payload)

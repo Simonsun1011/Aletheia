@@ -117,7 +117,10 @@ export default function ReviewsPage() {
               const cur =
                 [...c.entries]
                   .filter((e) => e.kind === "original" || e.kind === "revision")
-                  .sort((a, b) => a.created_at.localeCompare(b.created_at))
+                  .sort((a, b) => {
+                    const t = a.created_at.localeCompare(b.created_at);
+                    return t !== 0 ? t : a.id.localeCompare(b.id);
+                  })
                   .at(-1) ?? c.entries[0];
               return (
                 <li key={c.root_id} className="item">

@@ -5,6 +5,11 @@ const API_BASE =
 const FETCH_TIMEOUT_MS = 15_000;
 const LLM_FETCH_TIMEOUT_MS = 120_000;
 
+/** Drive-by CSRF soft gate — backend RequireClientHeaderMiddleware */
+const CLIENT_HEADERS: Record<string, string> = {
+  "X-Aletheia-Client": "1",
+};
+
 function withTimeout(
   init: RequestInit = {},
   timeoutMs: number = FETCH_TIMEOUT_MS
@@ -45,15 +50,16 @@ export type QuickNote = {
   object?: string | null;
 };
 
-async function parseError(res: Response): Promise<string> {
+/** Exported for unit tests — contract §1 flat envelope only. */
+export async function parseError(res: Response): Promise<string> {
   try {
     const body = await res.json();
     const code = body?.error?.code;
-    const msg =
-      body?.error?.message ??
-      (typeof body?.detail === "string" ? body.detail : null) ??
-      JSON.stringify(body);
-    return code ? `[${code}] ${msg}` : String(msg);
+    const msg = body?.error?.message;
+    if (typeof msg === "string" && msg.length > 0) {
+      return code ? `[${code}] ${msg}` : msg;
+    }
+    return res.statusText || "request failed";
   } catch {
     return res.statusText;
   }
@@ -102,7 +108,7 @@ export async function apiPost<T>(
       withTimeout(
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...CLIENT_HEADERS },
           body: JSON.stringify(body),
         },
         opts?.timeoutMs ?? FETCH_TIMEOUT_MS
@@ -121,7 +127,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
       `${API_BASE}${path}`,
       withTimeout({
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...CLIENT_HEADERS },
         body: JSON.stringify(body),
       })
     );
@@ -140,7 +146,7 @@ export async function apiPostLlm<T>(path: string, body: unknown): Promise<T> {
       withTimeout(
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...CLIENT_HEADERS },
           body: JSON.stringify(body),
         },
         LLM_FETCH_TIMEOUT_MS

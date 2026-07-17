@@ -5,14 +5,14 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
+from backend.tests.http_client import make_test_client
 
 from backend.app.main import app
 from backend.app.services.console import CONSOLE_TOP_KEYS, build_console
 from backend.app.services.glossary import import_glossary_seed
 from backend.app.services.planner import build_plan, ladder_prices_and_amounts
 from backend.app.stores.sqlite_store import SqliteStore
-from buy_planner import DEFAULTS, build_ladder, compute_indicators
+from tools.buy_planner import DEFAULTS, build_ladder, compute_indicators
 
 
 def _synthetic_ohlcv(n: int = 260, seed: int = 7) -> pd.DataFrame:
@@ -41,7 +41,7 @@ def store(tmp_path):
 @pytest.fixture
 def client(store, monkeypatch):
     monkeypatch.setattr("backend.app.main.create_store", lambda: store)
-    with TestClient(app) as c:
+    with make_test_client() as c:
         app.state.store = store
         yield c
 
@@ -53,6 +53,7 @@ def test_planner_matches_buy_planner_ladder(tmp_path):
     ind = compute_indicators(df, p)
     expected = build_ladder(ind, amount, p)
 
+    plans = tmp_path / "plans"
     plan = build_plan(
         ticker="AMAT",
         amount=amount,
@@ -66,18 +67,14 @@ def test_planner_matches_buy_planner_ladder(tmp_path):
             }
         ),
         save=True,
+        plans_dir_path=plans,
     )
-    # redirect save already happened under repo plans/; ok for test
     prices_e, amounts_e = ladder_prices_and_amounts(expected)
     prices_a, amounts_a = ladder_prices_and_amounts(plan["ladder"])
     assert prices_a == prices_e
     assert amounts_a == amounts_e
     assert plan["status"] == "open"
-    assert (tmp_path)  # silence
-    from pathlib import Path
-    from backend.app.config import REPO_ROOT
-
-    assert any(REPO_ROOT.joinpath("plans").glob(f"AMAT_*{plan['id'][-6:]}.json"))
+    assert any(plans.glob(f"AMAT_*{plan['id'][-6:]}.json"))
 
 
 def test_console_schema_whitelist_no_score(store, monkeypatch, tmp_path):

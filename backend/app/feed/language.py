@@ -20,16 +20,55 @@ _DIACRITIC = re.compile(
     r"[àâäæçéèêëîïôœùûüÿáíóúñãõäöüßÀÂÄÆÇÉÈÊËÎÏÔŒÙÛÜŸÁÍÓÚÑÃÕÄÖÜẞ]"
 )
 
-# Strong function-word hits for non-English Latin languages
+# Non-English Latin function/content words.
+# English high-frequency homographs removed (as/die/la/del/con/o/os/um/il/sono).
 _LATIN_OTHER_MARKERS = re.compile(
     r"(?i)\b("
-    r"le|la|les|des|une|du|au|aux|est|sont|dans|pour|avec|sur|par|qui|que|"
+    r"le|les|des|une|du|au|aux|est|sont|dans|pour|avec|sur|par|qui|que|"
     r"conférence|extrait|présente|nouveau|nouvelle|nomme|gestion|"
-    r"el|los|las|una|del|con|para|como|sobre|Congreso|Internacional|"
-    r"der|die|das|und|für|mit|von|zur|im|"
-    r"o|os|as|um|uma|dos|das|pelo|pela|"
-    r"il|gli|della|delle|nel|nella|sono"
+    r"el|los|las|una|para|como|sobre|Congreso|Internacional|"
+    r"der|das|und|für|mit|von|zur|im|"
+    r"uma|dos|pelo|pela|"
+    r"gli|della|delle|nel|nella"
     r")\b"
+)
+
+# Strong discriminators: near-zero in English tech wires.
+# Marker hits with diacritics also count as strong (see _latin_other_by_markers).
+# Weak markers (est/las/mit/sur/pour/par/von/der/dos/uma/como/…) stay in
+# _LATIN_OTHER_MARKERS for the ≥3 unique-type count only.
+_STRONG_MARKERS = frozenset(
+    {
+        # Task exemplars — unambiguous articles / particles
+        "le",
+        "les",
+        "une",
+        "für",
+        "gli",
+        # FR function / content (EN headline rarities; accented forms also auto-strong)
+        "sont",
+        "dans",
+        "avec",
+        "conférence",
+        "extrait",
+        "présente",
+        # nouveau/nouvelle：EN 借词 + NVIDIA Nouveau 驱动名 → 弱词（仍在 marker 表计数）
+        "nomme",
+        "gestion",
+        # ES orthography ≠ English International / Congress
+        "congreso",
+        "internacional",
+        # IT / PT clitics & contractions
+        "della",
+        "delle",
+        "nel",
+        "nella",
+        "pelo",
+        "pela",
+        # DE function words without common EN proper-name collision
+        "und",
+        "zur",
+    }
 )
 
 _HIRAGANA = re.compile(r"[\u3040-\u309F]")
@@ -48,6 +87,18 @@ def _script_counts(text: str) -> dict[str, int]:
     }
 
 
+def _latin_other_by_markers(text: str) -> bool:
+    """Unique marker types ≥3 and at least one strong discriminator."""
+    found = _LATIN_OTHER_MARKERS.findall(text)
+    unique = {m.lower() for m in found}
+    if len(unique) < 3:
+        return False
+    for m in unique:
+        if m in _STRONG_MARKERS or _DIACRITIC.search(m):
+            return True
+    return False
+
+
 def classify_language(title: str, content: str = "") -> Lang:
     """Heuristic language class for title (+ optional body head)."""
     text = f"{title or ''}\n{(content or '')[:800]}"
@@ -64,7 +115,7 @@ def classify_language(title: str, content: str = "") -> Lang:
     if c["latin"] >= 12:
         if c["diacritic"] >= 3:
             return "other"
-        if len(_LATIN_OTHER_MARKERS.findall(text)) >= 3:
+        if _latin_other_by_markers(text):
             return "other"
         return "en"
     if c["cjk"] >= 4:

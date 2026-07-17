@@ -1,4 +1,4 @@
-"""Compute indicators into market_data.db (formulas = buy_planner.py)."""
+"""Compute indicators into market_data.db (formulas = tools/buy_planner.py)."""
 
 from __future__ import annotations
 

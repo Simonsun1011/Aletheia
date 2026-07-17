@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import unicodedata
 from pathlib import Path
 
 from backend.app.ai.guard import guard, reset_guard_cache
@@ -30,8 +29,8 @@ def test_allows_factual_summary():
 
 
 def test_blocks_fullwidth_strong_buy():
-    fw_buy = "ｓｔｒｏｎｇ　ｂｕｙ"
-    assert not guard(unicodedata.normalize("NFKC", fw_buy)).ok
+    # A4: pass raw fullwidth — guard must NFKC-normalize internally
+    assert not guard("ｓｔｒｏｎｇ　ｂｕｙ").ok
 
 
 def test_iron_law_blocks_利好存储():

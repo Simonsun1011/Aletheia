@@ -71,9 +71,12 @@ def _parse_published(entry) -> str | None:
             )
         except Exception:
             try:
-                return datetime.fromisoformat(raw.replace("Z", "+00:00")).strftime(
-                    "%Y-%m-%dT%H:%M:%SZ"
-                )
+                dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                else:
+                    dt = dt.astimezone(timezone.utc)
+                return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
             except Exception:
                 continue
     return None
@@ -400,17 +403,27 @@ def start_refresh_background(
         from backend.app.stores.sqlite_store import SqliteStore
 
         set_request_id(run_id)
-        store = SqliteStore(db_path, journal_dir)
+        store = None
         try:
+            store = SqliteStore(db_path, journal_dir)
             store.init_schema()
             _run_refresh(store, batch_date, skip_fetch=skip_fetch)
-        except Exception:
-            pass  # state already records error
+        except Exception as e:
+            # Pre-run failures (ctor / init_schema) never reach _run_refresh's error state
+            if refresh_status().get("phase") == "starting":
+                _set_state(
+                    running=False,
+                    phase="error",
+                    error=str(e),
+                    finished_at=_now(),
+                    message=str(e),
+                )
         finally:
-            try:
-                store.close()
-            except Exception:
-                pass
+            if store is not None:
+                try:
+                    store.close()
+                except Exception:
+                    pass
             if _refresh_lock.locked():
                 _refresh_lock.release()
 

@@ -86,7 +86,8 @@ def current_version(chain: JudgmentChain) -> JudgmentEntry:
     versions = [e for e in chain.entries if e.kind in ("original", "revision")]
     if not versions:
         return chain.entries[0]
-    return max(versions, key=lambda e: e.created_at)
+    # ULID id breaks same-second ties (matches frontend sort by created_at then id)
+    return max(versions, key=lambda e: (e.created_at, e.id))
 
 
 def settle_chain(

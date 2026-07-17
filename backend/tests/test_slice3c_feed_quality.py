@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
+from backend.tests.http_client import make_test_client
 
 from backend.app.ai.adapter import CompletionResult
 from backend.app.feed.config import load_feeds
@@ -28,7 +28,7 @@ def store(tmp_path):
 @pytest.fixture
 def client(store, monkeypatch):
     monkeypatch.setattr("backend.app.main.create_store", lambda: store)
-    with TestClient(app) as c:
+    with make_test_client() as c:
         app.state.store = store
         yield c
 

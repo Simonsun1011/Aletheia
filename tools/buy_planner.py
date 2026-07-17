@@ -8,14 +8,14 @@ buy_planner.py — 买入执行计划器（Phase 0 脚本版，DESIGN.md §3.5.8
 
 用法:
     pip install yfinance pandas numpy
-    python3 buy_planner.py AMAT 5000              # 5000美元，默认5个交易日窗口
-    python3 buy_planner.py MRVL 3000 --window 8 --tranches 4
+    python3 tools/buy_planner.py AMAT 5000              # 5000美元，默认5个交易日窗口
+    python3 tools/buy_planner.py MRVL 3000 --window 8 --tranches 4
 
 输出:
     1. 经典价位锚点表（纯描述，标注当前价的相对位置）
     2. ATR阶梯限价方案（间距按该股波动自适应）
     3. 事件冲突提醒
-    4. 报告存至 reports/，方案JSON存至 plans/（供日后对比窗口VWAP复盘）
+    4. 报告存至 data/reports/，方案JSON存至 data/plans/（供日后对比窗口VWAP复盘）
 """
 
 import argparse
@@ -214,14 +214,17 @@ def main():
 
     report = render_report(ticker, args.amount, ind, ladder, p, earnings_note)
 
-    base = Path(__file__).parent
-    (base / "reports").mkdir(exist_ok=True)
-    (base / "plans").mkdir(exist_ok=True)
+    # 相对仓库根解析，不依赖 cwd
+    repo_root = Path(__file__).resolve().parent.parent
+    reports_dir = repo_root / "data" / "reports"
+    plans_dir = repo_root / "data" / "plans"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    plans_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M")
-    rpath = base / "reports" / f"{ticker}_{stamp}.md"
+    rpath = reports_dir / f"{ticker}_{stamp}.md"
     rpath.write_text(report, encoding="utf-8")
     # 方案JSON：供日后自动对比窗口VWAP复盘
-    (base / "plans" / f"{ticker}_{stamp}.json").write_text(json.dumps({
+    (plans_dir / f"{ticker}_{stamp}.json").write_text(json.dumps({
         "ticker": ticker, "created": datetime.now().isoformat(),
         "amount": args.amount, "window_days": p["window_days"],
         "price_at_plan": ind["last"], "atr": ind["atr"],
@@ -230,6 +233,7 @@ def main():
 
     print(report)
     print(f"\n[已保存] {rpath}")
+    print(f"[已保存] {plans_dir / f'{ticker}_{stamp}.json'}")
 
 
 if __name__ == "__main__":
